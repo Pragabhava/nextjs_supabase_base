@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js Project with Supabase Auth
 
-## Getting Started
+A modern web application built with Next.js 14, featuring Supabase authentication, and a responsive layout with navigation components.
 
-First, run the development server:
+![Project Structure](public/project-structure.png)
 
+## Features
+
+- 🔐 Supabase Authentication
+- 🎨 Responsive Navigation Bar
+- 📱 Collapsible Sidebar
+- 🌙 Dark/Light Mode Support
+- 🔧 TypeScript Configuration
+- 📦 Environment Variables Setup
+
+## Prerequisites
+
+- Node.js 18.x or later
+- npm or yarn package manager
+- Supabase account and project
+
+## Environment Variables
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## TypeScript Configuration
+
+Ensure you have a `next-env.d.ts` file in your root directory. This file should contain:
+
+```typescript
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+```
+
+## Project Structure
+
+```
+├── app/
+│   ├── components/
+│   │   ├── Navbar.tsx
+│   │   └── Sidebar.tsx
+│   ├── layout.tsx
+│   └── page.tsx
+├── public/
+│   └── project-structure.png
+├── types/
+│   └── supabase.ts
+├── .env.local
+├── next-env.d.ts
+└── package.json
+```
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone <your-repo-url>
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Run the development server:
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Required Dependencies
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```json
+{
+  "dependencies": {
+    "@supabase/auth-helpers-nextjs": "latest",
+    "@supabase/supabase-js": "latest",
+    "next": "14.x",
+    "react": "18.x",
+    "react-dom": "18.x"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/react": "18.x",
+    "@types/react-dom": "18.x",
+    "typescript": "5.x"
+  }
+}
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Authentication Setup
 
-## Learn More
+1. Configure Supabase client:
 
-To learn more about Next.js, take a look at the following resources:
+```typescript
+import { createClient } from '@supabase/supabase-js'
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Implement authentication in your components:
 
-## Deploy on Vercel
+```typescript
+const { data: { user }, error } = await supabase.auth.getUser()
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contributing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
