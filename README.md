@@ -1,23 +1,21 @@
 # Next.js Project with Supabase Auth and shadcn/ui
 
-A modern web application built with Next.js 14, featuring Supabase authentication, and a responsive layout with navigation components.
-
-![Project Structure](public/project-structure.png)
+A modern web application built with Next.js 15, featuring Supabase authentication, and a responsive layout with navigation components.
 
 ## Features
 
-- 🔐 Supabase Authentication
-- 🎨 Responsive Navigation Bar
+- 🔐 Supabase Authentication (already set up with middleware)
+- 🎨 Responsive Navigation Bar with mobile support
 - 📱 Collapsible Sidebar
-- 🌙 Dark/Light Mode Support
-- 🔧 TypeScript Configuration
+- 🌙 Dark/Light Mode Support via next-themes
+- 🔧 TypeScript Configuration (Next.js 15 + React 19)
 - 📦 Environment Variables Setup
 - 🎯 shadcn/ui Components
 
 ## Prerequisites
 
-- Node.js 18.x or later
-- npm or yarn package manager
+- Node.js 20.x or later
+- pnpm (recommended) or npm package manager
 - Supabase account and project
 
 ## Environment Variables
@@ -29,120 +27,95 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-## TypeScript Configuration
-
-Ensure you have a `next-env.d.ts` file in your root directory. This file should contain:
-
-```typescript
-/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-```
-
 ## Project Structure
 
 ```
-├── app/
-│   ├── components/
-│   │   ├── Navbar.tsx
-│   │   └── Sidebar.tsx
-│   ├── layout.tsx
-│   └── page.tsx
-├── public/
-│   └── project-structure.png
-├── types/
-│   └── supabase.ts
-├── .env.local
-├── next-env.d.ts
-└── package.json
+├── public/               # Static files
+├── src/
+│   ├── app/              # Next.js App Router
+│   │   ├── auth/         # Authentication pages
+│   │   ├── protected/    # Protected routes (require authentication)
+│   │   ├── layout.tsx    # Root layout
+│   │   └── page.tsx      # Home page
+│   ├── components/       # Shared components
+│   │   ├── ui/           # shadcn/ui components
+│   │   ├── navigation.tsx
+│   │   ├── sidebar.tsx
+│   │   └── ...           # Authentication forms & other components
+│   ├── hooks/            # Custom React hooks
+│   ├── lib/              # Utility functions
+│   │   └── supabase/     # Supabase clients and utilities
+│   └── middleware.ts     # Authentication middleware
+├── .env.local            # Environment variables (you need to create this)
+├── components.json       # shadcn/ui configuration
+├── next.config.ts        # Next.js configuration
+├── tailwind.config.js    # Tailwind CSS configuration
+└── package.json          # Project dependencies
 ```
+
+## Key Directory Explanation
+
+- **/src/app**: Main application directory using the Next.js App Router
+- **/src/app/protected**: Routes that require authentication (middleware redirects to login if unauthenticated)
+- **/src/app/auth**: Authentication pages (login, signup, password reset)
+- **/src/components**: Reusable UI components
+- **/src/lib/supabase**: Supabase client configurations for both server and client components
 
 ## Installation
 
 1. Clone the repository:
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Pragabhava/nextjs_supabase_base.git my-project
+cd my-project
 ```
 
 2. Install dependencies:
 ```bash
+pnpm install
+# or
 npm install
-# or
-yarn install
 ```
 
-3. Run the development server:
+3. Set up your environment variables (see above)
+
+4. Run the development server:
 ```bash
+pnpm dev
+# or
 npm run dev
-# or
-yarn dev
 ```
 
-## Required Dependencies
+## Using Protected Routes
 
-```json
-{
-  "dependencies": {
-    "@supabase/auth-helpers-nextjs": "latest",
-    "@supabase/supabase-js": "latest",
-    "next": "14.x",
-    "react": "18.x",
-    "react-dom": "18.x",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.0.0",
-    "tailwind-merge": "^2.0.0",
-    "tailwindcss-animate": "^1.0.7",
-    "@radix-ui/react-icons": "^1.3.0"
-  },
-  "devDependencies": {
-    "@types/node": "20.x",
-    "@types/react": "18.x",
-    "@types/react-dom": "18.x",
-    "typescript": "5.x",
-    "tailwindcss": "^3.3.0",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.31"
+The repository includes two types of routes:
+
+1. **Public routes**: Accessible to all users (e.g., `/`, `/auth/login`)
+2. **Protected routes**: Only accessible to authenticated users (e.g., `/protected/*`)
+
+To create a new protected page:
+1. Create a new directory or file under `/src/app/protected/`
+2. The middleware will automatically handle authentication checks
+
+Example of a protected page:
+```tsx
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+
+export default async function ProtectedPage() {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getUser()
+  
+  if (!data?.user) {
+    redirect('/auth/login')
   }
+  
+  return (
+    <div>
+      <h1>Protected Content</h1>
+      <p>Hello, {data.user.email}</p>
+    </div>
+  )
 }
-```
-
-## Authentication Setup
-
-1. Configure Supabase client:
-
-```typescript
-import { createClient } from '@supabase/supabase-js'
-
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-```
-
-2. Implement authentication in your components:
-
-```typescript
-const { data: { user }, error } = await supabase.auth.getUser()
-```
-
-## shadcn/ui Setup
-
-1. Initialize shadcn/ui in your project:
-
-```bash
-npx shadcn-ui@latest init
-```
-
-2. Install components as needed:
-
-```bash
-npx shadcn-ui@latest add button
-# Add more components as needed
-```
-
-3. Components will be added to your `components/ui` directory and can be imported and used in your application:
-
-```typescript
-import { Button } from "@/components/ui/button"
 ```
 
 ## Contributing
