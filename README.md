@@ -1,4 +1,4 @@
-# Next.js Project with Supabase Auth
+# Next.js Project with Supabase Auth and shadcn/ui
 
 A modern web application built with Next.js 14, featuring Supabase authentication, and a responsive layout with navigation components.
 
@@ -12,6 +12,7 @@ A modern web application built with Next.js 14, featuring Supabase authenticatio
 - 🌙 Dark/Light Mode Support
 - 🔧 TypeScript Configuration
 - 📦 Environment Variables Setup
+- 🎯 shadcn/ui Components
 
 ## Prerequisites
 
@@ -85,13 +86,21 @@ yarn dev
     "@supabase/supabase-js": "latest",
     "next": "14.x",
     "react": "18.x",
-    "react-dom": "18.x"
+    "react-dom": "18.x",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.0.0",
+    "tailwindcss-animate": "^1.0.7",
+    "@radix-ui/react-icons": "^1.3.0"
   },
   "devDependencies": {
     "@types/node": "20.x",
     "@types/react": "18.x",
     "@types/react-dom": "18.x",
-    "typescript": "5.x"
+    "typescript": "5.x",
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31"
   }
 }
 ```
@@ -113,6 +122,27 @@ export const supabase = createClient(
 
 ```typescript
 const { data: { user }, error } = await supabase.auth.getUser()
+```
+
+## shadcn/ui Setup
+
+1. Initialize shadcn/ui in your project:
+
+```bash
+npx shadcn-ui@latest init
+```
+
+2. Install components as needed:
+
+```bash
+npx shadcn-ui@latest add button
+# Add more components as needed
+```
+
+3. Components will be added to your `components/ui` directory and can be imported and used in your application:
+
+```typescript
+import { Button } from "@/components/ui/button"
 ```
 
 ## Contributing
