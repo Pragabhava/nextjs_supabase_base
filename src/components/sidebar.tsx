@@ -30,7 +30,10 @@ import {
 
 export function AppSidebar() {
     return (
-        <SidebarProvider defaultOpen={true} style={{ "--nav-height": "48px", } as React.CSSProperties} className="relative">
+        <SidebarProvider
+            defaultOpen={true}
+            style={{ "--nav-height": "48px", "--sidebar-width": "256px", } as React.CSSProperties}
+            className="w-auto shrink-0">
             <Sidebar className="top-[var(--nav-height)] h-[calc(100vh-var(--nav-height))]" collapsible="icon">
                 <SidebarHeader className="flex flex-row items-center gap-2 py-3 px-2">
                     {/* The key is to use the correct markup here */}
