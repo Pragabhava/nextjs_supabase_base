@@ -2,8 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Menu, Search, ChevronsUpDown, CircleHelp, Inbox, User as UserIcon, Settings, Command, FlaskConical, LogOut, CircleIcon } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { Menu, Search, ChevronsUpDown, CircleHelp, Inbox, User as UserIcon, Settings, Command, FlaskConical, LogOut } from "lucide-react"
 import {
     NavigationMenu,
     NavigationMenuList,
@@ -24,8 +23,21 @@ import { User } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
+import { getProjectSelector, ProjectSelector } from "@/app/actions/navigation"
+import { useEffect, useState } from "react"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 export function Navigation({ user }: { user: User }) {
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [projectSelector, setProjectSelector] = useState<ProjectSelector[]>([])
+    const [selectedProject, setSelectedProject] = useState<string>("")
     const { theme, setTheme } = useTheme()
     const router = useRouter()
 
@@ -34,6 +46,38 @@ export function Navigation({ user }: { user: User }) {
         await supabase.auth.signOut()
         router.push('/auth/login')
     };
+
+    useEffect(() => {
+        const loadProjectSelector = async () => {
+            try {
+                setLoading(true)
+
+                const projectResult = await getProjectSelector()
+                if (projectResult.error) throw new Error(projectResult.error.message)
+                console.log("Project selector loaded:", projectResult.data)
+                setProjectSelector(projectResult.data || [])
+
+                // Set the first project as selected by default if there are projects
+                if (projectResult.data && projectResult.data.length > 0) {
+                    setSelectedProject(projectResult.data[0].id.toString())
+                }
+
+                setError(null)
+            } catch (error) {
+                console.error("Error loading project selector:", error)
+                setError(error instanceof Error ? error.message : "Unknown error")
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadProjectSelector()
+    }, [])
+
+    const handleProjectChange = (projectId: string) => {
+        setSelectedProject(projectId)
+        // Here you can add navigation logic if needed when switching projects
+        // For example: router.push(`/project/${projectId}`)
+    }
 
     return (
         <div className="flex-shrink-0">
@@ -60,8 +104,8 @@ export function Navigation({ user }: { user: User }) {
             <header className="flex h-12 items-center flex-shrink-0 border-b">
                 <div className="flex items-center justify-between h-full pr-3 flex-1 overflow-x-auto gap-x-4 md:pl-4">
                     <div className="flex items-center text-sm">
-                        <Link href="/dashboard" className="items-center justify-center flex-shrink-0 hidden md:flex">
-                            <img alt="Logo" src="/logo.svg" className="w-[18px] h-[18px]" />
+                        <Link href="/protected" className="items-center justify-center flex-shrink-0 hidden md:flex">
+                            <img alt="SP" src="/logo.svg" className="w-[18px] h-[18px]" />
                         </Link>
 
                         <NavigationMenu>
@@ -70,35 +114,36 @@ export function Navigation({ user }: { user: User }) {
                                     <button className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground hover:bg-surface-300 shadow-none focus-visible:outline-border-strong data-[state=open]:bg-surface-300 data-[state=open]:outline-border-strong border-transparent text-xs px-2.5 py-1 h-[26px] pr-2">
                                         <span className="truncate">
                                             <div className="flex items-center space-x-2">
-                                                <p className="text-xs">Organization Name</p>
-                                                <Badge variant="secondary">Pro</Badge>
+                                                <p className="text-xs">Sexto Piso</p>
                                             </div>
                                         </span>
-                                        <ChevronsUpDown className="h-[14px] w-[14px] text-foreground-lighter" />
                                     </button>
                                 </NavigationMenuItem>
 
                                 <NavigationMenuItem>
-                                    <button className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground hover:bg-surface-300 shadow-none focus-visible:outline-border-strong data-[state=open]:bg-surface-300 data-[state=open]:outline-border-strong border-transparent text-xs px-2.5 py-1 h-[26px] pr-2">
-                                        <span className="truncate">
-                                            <div className="flex items-center space-x-2">
-                                                <p className="text-sm">Project</p>
-                                            </div>
-                                        </span>
-                                        <ChevronsUpDown className="h-[14px] w-[14px] text-foreground-lighter" />
-                                    </button>
-                                </NavigationMenuItem>
-
-                                <NavigationMenuItem>
-                                    <button className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground hover:bg-surface-300 shadow-none focus-visible:outline-border-strong data-[state=open]:bg-surface-300 data-[state=open]:outline-border-strong border-transparent text-xs px-2.5 py-1 h-[26px] pr-2">
-                                        <span className="truncate">
-                                            <div className="flex items-center space-x-2">
-                                                <p className="text-xs">main</p>
-                                                <Badge variant="secondary" className="bg-warning/10 text-warning-600 border-warning-500">Production</Badge>
-                                            </div>
-                                        </span>
-                                        <ChevronsUpDown className="h-[14px] w-[14px] text-foreground-lighter" />
-                                    </button>
+                                    {!loading && projectSelector.length > 0 ? (
+                                        <Select value={selectedProject} onValueChange={handleProjectChange}>
+                                            <SelectTrigger className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground hover:bg-surface-300 shadow-none focus-visible:outline-border-strong data-[state=open]:bg-surface-300 data-[state=open]:outline-border-strong border-transparent text-xs px-2.5 py-1 h-[26px] pr-2">
+                                                <SelectValue placeholder="Select project" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {projectSelector.map((project) => (
+                                                    <SelectItem key={project.id} value={project.id.toString()}>
+                                                        {project.nombre}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <button className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground hover:bg-surface-300 shadow-none focus-visible:outline-border-strong data-[state=open]:bg-surface-300 data-[state=open]:outline-border-strong border-transparent text-xs px-2.5 py-1 h-[26px] pr-2">
+                                            <span className="truncate">
+                                                <div className="flex items-center space-x-2">
+                                                    <p className="text-sm">{loading ? "Loading projects..." : "No projects available"}</p>
+                                                </div>
+                                            </span>
+                                            <ChevronsUpDown className="h-[14px] w-[14px] text-foreground-lighter" />
+                                        </button>
+                                    )}
                                 </NavigationMenuItem>
                             </NavigationMenuList>
                         </NavigationMenu>
