@@ -20,7 +20,7 @@ declare module 'mssql' {
     }
 
     export class Request {
-        input(name: string, value: any): Request;
-        query(command: string): Promise<{ recordset: any[] }>;
+        input(name: string, value: string | number | boolean | Date | Buffer | null): Request;
+        query<T = unknown>(command: string): Promise<{ recordset: T[] }>;
     }
 } 

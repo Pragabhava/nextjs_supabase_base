@@ -56,6 +56,19 @@ export function AppSidebar() {
         loadSitemap()
     }, [])
 
+    if (loading) {
+        return <div className="flex items-center justify-center h-full">
+            <Icons.Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+    }
+
+    if (error) {
+        return <div className="flex items-center justify-center h-full text-red-500">
+            <Icons.AlertCircle className="h-6 w-6 mr-2" />
+            <span>Error loading menu</span>
+        </div>
+    }
+
     return (
         <SidebarProvider
             defaultOpen={true}

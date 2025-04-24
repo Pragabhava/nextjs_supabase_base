@@ -30,7 +30,11 @@ export async function createMssqlClient(db: string) {
 }
 
 // Example query function
-export async function queryMssql<T>(query: string, params: any[] = [], db: string): Promise<T[]> {
+export async function queryMssql<T>(
+    query: string,
+    params: Array<string | number | boolean | Date | Buffer | null> = [],
+    db: string
+): Promise<T[]> {
     const pool = await createMssqlClient(db)
     try {
         const request = pool.request()

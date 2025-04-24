@@ -35,7 +35,6 @@ import {
 
 export function Navigation({ user }: { user: User }) {
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
     const [projectSelector, setProjectSelector] = useState<ProjectSelector[]>([])
     const [selectedProject, setSelectedProject] = useState<string>("")
     const { theme, setTheme } = useTheme()
@@ -53,7 +52,12 @@ export function Navigation({ user }: { user: User }) {
                 setLoading(true)
 
                 const projectResult = await getProjectSelector()
-                if (projectResult.error) throw new Error(projectResult.error.message)
+                if (projectResult.error) {
+                    console.error("Error loading project selector:", projectResult.error)
+                    setProjectSelector([])
+                    return
+                }
+
                 console.log("Project selector loaded:", projectResult.data)
                 setProjectSelector(projectResult.data || [])
 
@@ -61,11 +65,9 @@ export function Navigation({ user }: { user: User }) {
                 if (projectResult.data && projectResult.data.length > 0) {
                     setSelectedProject(projectResult.data[0].id.toString())
                 }
-
-                setError(null)
             } catch (error) {
                 console.error("Error loading project selector:", error)
-                setError(error instanceof Error ? error.message : "Unknown error")
+                setProjectSelector([])
             } finally {
                 setLoading(false)
             }
