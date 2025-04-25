@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import {
@@ -11,63 +11,143 @@ import {
 } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { getDistribuidoras, getEditoriales } from "@/app/actions/chained-selectors"
 
-const OPTIONS = {
-    fruits: ['apple', 'banana'],
-    vegetables: ['onion', 'garlic']
-} as const
+// These types will match our server types
+type Distribuidora = {
+    IdDistribuidora: number;
+    CodigoDistribuidora: string;
+    Distribuidora: string;
+}
 
-type Distribuidora = keyof typeof OPTIONS
-type Editorial = (typeof OPTIONS)[Distribuidora][number]
+type Editorial = {
+    IdEditorial: number;
+    CodigoEditorial: string;
+    Editorial: string;
+    IdDistribuidora: number;
+    CodigoDistribuidora: string;
+    Distribuidora: string;
+}
 
-// Helper function to get all items from all categories
-const getAllEditoriales = () => {
-    return Object.values(OPTIONS).flat() as Editorial[]
+// This will be built dynamically from the fetched data
+interface DistribuidoraOption {
+    name: string;
+    values: string[]; // Store editorial IDs as strings
 }
 
 export function ChainedSelectors() {
-    // Initialize with all categories and items selected
-    const [selectedDistribuidoras, setSelectedDistribuidoras] = useState<Distribuidora[]>(
-        Object.keys(OPTIONS) as Distribuidora[]
-    )
-    const [selectedEditoriales, setSelectedEditoriales] = useState<Editorial[]>(
-        getAllEditoriales()
-    )
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [options, setOptions] = useState<Record<string, DistribuidoraOption>>({});
+    const [distribuidoras, setDistribuidoras] = useState<Distribuidora[]>([]);
+    const [editoriales, setEditoriales] = useState<Editorial[]>([]);
 
-    const handleDistribuidoraToggle = (distribuidora: Distribuidora) => {
+    // Initialize with empty selections
+    const [selectedDistribuidoras, setSelectedDistribuidoras] = useState<string[]>([]);
+    const [selectedEditoriales, setSelectedEditoriales] = useState<string[]>([]);
+
+    useEffect(() => {
+        async function fetchData() {
+            setLoading(true);
+            try {
+                // Fetch distribuidoras and editoriales
+                const [distribuidorasResult, editorialesResult] = await Promise.all([
+                    getDistribuidoras(),
+                    getEditoriales()
+                ]);
+
+                if (distribuidorasResult.error) {
+                    throw new Error(distribuidorasResult.error);
+                }
+
+                if (editorialesResult.error) {
+                    throw new Error(editorialesResult.error);
+                }
+
+                // Store the raw data
+                setDistribuidoras(distribuidorasResult.data);
+                setEditoriales(editorialesResult.data);
+
+                // Build the options structure
+                const optionsMap: Record<string, DistribuidoraOption> = {};
+
+                distribuidorasResult.data.forEach(distribuidora => {
+                    // Find all editoriales for this distribuidora
+                    const distribuidoraEditoriales = editorialesResult.data
+                        .filter(editorial => editorial.IdDistribuidora === distribuidora.IdDistribuidora)
+                        .map(editorial => editorial.IdEditorial.toString());
+
+                    optionsMap[distribuidora.IdDistribuidora.toString()] = {
+                        name: distribuidora.Distribuidora,
+                        values: distribuidoraEditoriales
+                    };
+                });
+
+                setOptions(optionsMap);
+
+                // Set initial selections to all distribuidoras and editoriales
+                setSelectedDistribuidoras(distribuidorasResult.data.map(d => d.IdDistribuidora.toString()));
+                setSelectedEditoriales(editorialesResult.data.map(e => e.IdEditorial.toString()));
+
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to load data');
+                console.error('Error loading data:', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchData();
+    }, []);
+
+    // Helper function to get all items from all categories
+    const getAllEditoriales = () => {
+        return Object.values(options).flatMap(distribuidora => distribuidora.values);
+    }
+
+    const handleDistribuidoraToggle = (distribuidora: string) => {
         setSelectedDistribuidoras(prev => {
             const newDistribuidoras = prev.includes(distribuidora)
-                ? prev.filter(c => c !== distribuidora)
-                : [...prev, distribuidora]
+                ? prev.filter(d => d !== distribuidora)
+                : [...prev, distribuidora];
 
             // Update selected items based on selected categories
             setSelectedEditoriales(prev => {
-                const availableEditoriales = newDistribuidoras.flatMap(dist => OPTIONS[dist])
-                return prev.filter(editorial => availableEditoriales.includes(editorial))
-            })
+                const availableEditoriales = newDistribuidoras.flatMap(dist => options[dist]?.values || []);
+                return prev.filter(editorial => availableEditoriales.includes(editorial));
+            });
 
-            return newDistribuidoras
-        })
+            return newDistribuidoras;
+        });
     }
 
-    const handleEditorialToggle = (editorial: Editorial) => {
+    const handleEditorialToggle = (editorial: string) => {
         setSelectedEditoriales(prev =>
             prev.includes(editorial)
-                ? prev.filter(i => i !== editorial)
+                ? prev.filter(e => e !== editorial)
                 : [...prev, editorial]
-        )
+        );
     }
 
     // Helper to check if an item is selectable (its category is selected)
-    const isEditorialSelectable = (editorial: Editorial) => {
-        return Object.entries(OPTIONS).some(([distribuidora, editoriales]) =>
-            editoriales.includes(editorial) && selectedDistribuidoras.includes(distribuidora as Distribuidora)
-        )
+    const isEditorialSelectable = (editorial: string) => {
+        return Object.entries(options).some(([distribuidoraId, option]) =>
+            option.values.includes(editorial) && selectedDistribuidoras.includes(distribuidoraId)
+        );
     }
 
-    const getTotalSelections = () => {
-        const total = selectedDistribuidoras.length + selectedEditoriales.length
-        return total > 0 ? total : 'None'
+    // Function to get editorial name by id
+    const getEditorialName = (id: string) => {
+        const editorial = editoriales.find(e => e.IdEditorial.toString() === id);
+        return editorial?.Editorial || id;
+    }
+
+    if (loading) {
+        return <div className="flex items-center justify-center p-8">Loading...</div>;
+    }
+
+    if (error) {
+        return <div className="text-red-500 p-4">Error: {error}</div>;
     }
 
     return (
@@ -80,7 +160,7 @@ export function ChainedSelectors() {
                 <AccordionItem value="selectors">
                     <AccordionTrigger className="hover:no-underline px-4 py-3">
                         <div className="flex items-center gap-4">
-                            <span>Selections</span>
+                            <span>Filtros</span>
                             <div className="flex gap-2">
                                 <Badge variant="secondary">
                                     {selectedDistribuidoras.length} distribuidoras
@@ -102,17 +182,17 @@ export function ChainedSelectors() {
                                     </Badge>
                                 </div>
                                 <div className="flex flex-col gap-2 p-4 border rounded-md">
-                                    {(Object.keys(OPTIONS) as Distribuidora[]).map((distribuidora) => (
+                                    {Object.keys(options).map((distribuidoraId) => (
                                         <label
-                                            key={distribuidora}
+                                            key={distribuidoraId}
                                             className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
                                         >
                                             <Checkbox
-                                                checked={selectedDistribuidoras.includes(distribuidora)}
-                                                onCheckedChange={() => handleDistribuidoraToggle(distribuidora)}
+                                                checked={selectedDistribuidoras.includes(distribuidoraId)}
+                                                onCheckedChange={() => handleDistribuidoraToggle(distribuidoraId)}
                                             />
                                             <span className="text-sm capitalize">
-                                                {distribuidora}
+                                                {options[distribuidoraId].name}
                                             </span>
                                         </label>
                                     ))}
@@ -130,50 +210,32 @@ export function ChainedSelectors() {
                                         {selectedEditoriales.length} editoriales
                                     </Badge>
                                 </div>
-                                <div className="flex flex-col gap-4 p-4 border rounded-md">
-                                    {Object.entries(OPTIONS).map(([distribuidora, editoriales]) => (
-                                        <div key={distribuidora} className="flex flex-col gap-2">
-                                            <div className="text-xs text-muted-foreground uppercase tracking-wider">
-                                                {distribuidora}
+                                <div className="flex flex-col gap-4 p-4 border rounded-md h-[300px] overflow-y-auto">
+                                    {Object.entries(options).map(([distribuidoraId, option]) => (
+                                        <div key={distribuidoraId} className="flex flex-col gap-2">
+                                            <div className="text-xs text-muted-foreground tracking-wider">
+                                                {option.name}
                                             </div>
-                                            {editoriales.map((editorial) => (
+                                            {option.values.map((editorialId) => (
                                                 <label
-                                                    key={editorial}
+                                                    key={editorialId}
                                                     className={cn(
                                                         "flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors",
-                                                        !isEditorialSelectable(editorial) && "opacity-50"
+                                                        !isEditorialSelectable(editorialId) && "opacity-50"
                                                     )}
                                                 >
                                                     <Checkbox
-                                                        checked={selectedEditoriales.includes(editorial)}
-                                                        onCheckedChange={() => handleEditorialToggle(editorial)}
-                                                        disabled={!isEditorialSelectable(editorial)}
+                                                        checked={selectedEditoriales.includes(editorialId)}
+                                                        onCheckedChange={() => handleEditorialToggle(editorialId)}
+                                                        disabled={!isEditorialSelectable(editorialId)}
                                                     />
                                                     <span className="text-sm capitalize">
-                                                        {editorial}
+                                                        {getEditorialName(editorialId)}
                                                     </span>
                                                 </label>
                                             ))}
                                         </div>
                                     ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Selection Summary */}
-                        <div className="mt-6 text-sm text-muted-foreground bg-muted/20 p-4 rounded-md">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                <div>
-                                    <strong>Distribuidoras seleccionadas:</strong>{' '}
-                                    {selectedDistribuidoras.length > 0
-                                        ? selectedDistribuidoras.join(', ')
-                                        : 'Ninguna'}
-                                </div>
-                                <div>
-                                    <strong>Editoriales seleccionadas:</strong>{' '}
-                                    {selectedEditoriales.length > 0
-                                        ? selectedEditoriales.join(', ')
-                                        : 'Ninguna'}
                                 </div>
                             </div>
                         </div>

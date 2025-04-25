@@ -9,9 +9,13 @@ export async function createMssqlClient(db: string) {
         return cachedConnection
     }
 
-    // Configure the connection
+    // Connection string isn't being used correctly, we need to explicitly set server and other properties
     const config: sql.config = {
-        connectionString: process.env[`NEXT_${db}_DB_URL`],
+        server: process.env[`NEXT_${db}_DB_SERVER`] || 'localhost',
+        database: process.env[`NEXT_${db}_DB_DATABSE`],
+        user: process.env[`NEXT_${db}_DB_USER`],
+        password: process.env[`NEXT_${db}_DB_PASSWORD`],
+        port: parseInt(process.env[`NEXT_${db}_DB_PORT`] || '1433'),
         options: {
             encrypt: true, // For Azure
             trustServerCertificate: true, // Change to false for production
