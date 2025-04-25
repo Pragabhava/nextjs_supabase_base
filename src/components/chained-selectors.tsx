@@ -105,6 +105,31 @@ export function ChainedSelectors() {
         return Object.values(options).flatMap(distribuidora => distribuidora.values);
     }
 
+    // Add these new functions for Select All functionality
+    const handleSelectAllDistribuidoras = (selectAll: boolean) => {
+        const allDistribuidoraIds = Object.keys(options);
+        if (selectAll) {
+            setSelectedDistribuidoras(allDistribuidoraIds);
+            // When selecting all distribuidoras, also select all editoriales
+            setSelectedEditoriales(getAllEditoriales());
+        } else {
+            setSelectedDistribuidoras([]);
+            setSelectedEditoriales([]);
+        }
+    }
+
+    const handleSelectAllEditoriales = (selectAll: boolean) => {
+        const availableEditoriales = selectedDistribuidoras.flatMap(dist =>
+            options[dist]?.values || []
+        );
+
+        if (selectAll) {
+            setSelectedEditoriales(availableEditoriales);
+        } else {
+            setSelectedEditoriales([]);
+        }
+    }
+
     const handleDistribuidoraToggle = (distribuidora: string) => {
         setSelectedDistribuidoras(prev => {
             const newDistribuidoras = prev.includes(distribuidora)
@@ -182,6 +207,17 @@ export function ChainedSelectors() {
                                     </Badge>
                                 </div>
                                 <div className="flex flex-col gap-2 p-4 border rounded-md">
+                                    <label
+                                        className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors border-b pb-2 mb-1"
+                                    >
+                                        <Checkbox
+                                            checked={selectedDistribuidoras.length === Object.keys(options).length}
+                                            onCheckedChange={(checked) => handleSelectAllDistribuidoras(!!checked)}
+                                        />
+                                        <span className="text-sm font-medium">
+                                            Seleccionar todas
+                                        </span>
+                                    </label>
                                     {Object.keys(options).map((distribuidoraId) => (
                                         <label
                                             key={distribuidoraId}
@@ -211,6 +247,17 @@ export function ChainedSelectors() {
                                     </Badge>
                                 </div>
                                 <div className="flex flex-col gap-4 p-4 border rounded-md h-[300px] overflow-y-auto">
+                                    <label
+                                        className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors border-b pb-2 mb-1"
+                                    >
+                                        <Checkbox
+                                            checked={selectedEditoriales.length === selectedDistribuidoras.flatMap(dist => options[dist]?.values || []).length}
+                                            onCheckedChange={(checked) => handleSelectAllEditoriales(!!checked)}
+                                        />
+                                        <span className="text-sm font-medium">
+                                            Seleccionar todas
+                                        </span>
+                                    </label>
                                     {Object.entries(options).map(([distribuidoraId, option]) => (
                                         <div key={distribuidoraId} className="flex flex-col gap-2">
                                             <div className="text-xs text-muted-foreground tracking-wider">
