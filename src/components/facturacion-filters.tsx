@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DateRangePicker } from "@/components/date-range-picker"
 import { FacturacionChainedSelectors } from "@/components/facturacion-chained-selectors"
 import { FacturacionDataTable } from "@/components/facturacion-data-table"
+import { getEditoriales, type Editorial } from "@/app/actions/chained-selectors"
 
 export function FacturacionFilters() {
     const [selectedEditoriales, setSelectedEditoriales] = useState<string[]>([])
@@ -11,6 +12,22 @@ export function FacturacionFilters() {
         from: new Date(new Date().getFullYear(), 0, 1), // January 1st of current year
         to: new Date() // Today
     })
+    const [editorialMap, setEditorialMap] = useState<Record<string, string>>({})
+
+    // Fetch editorial mapping on mount
+    useEffect(() => {
+        async function fetchEditoriales() {
+            const result = await getEditoriales()
+            if (!result.error) {
+                const map: Record<string, string> = {}
+                result.data.forEach((e: Editorial) => {
+                    map[e.IdEditorial.toString()] = e.Editorial
+                })
+                setEditorialMap(map)
+            }
+        }
+        fetchEditoriales()
+    }, [])
 
     // Forward selected editorials from ChainedSelectors
     const handleEditorialesChange = (editorials: string[]) => {
@@ -35,6 +52,7 @@ export function FacturacionFilters() {
             <div className="mt-4">
                 <FacturacionDataTable
                     selectedEditoriales={selectedEditoriales}
+                    editorialMap={editorialMap}
                     dateRange={dateRange}
                 />
             </div>

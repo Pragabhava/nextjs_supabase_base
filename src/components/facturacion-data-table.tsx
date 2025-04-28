@@ -30,6 +30,7 @@ import {
 
 interface FacturacionDataTableProps {
     selectedEditoriales: string[]
+    editorialMap: Record<string, string>
     dateRange: { from: Date | undefined; to: Date | undefined }
 }
 
@@ -69,6 +70,7 @@ type Column = {
 
 export function FacturacionDataTable({
     selectedEditoriales,
+    editorialMap,
     dateRange
 }: FacturacionDataTableProps) {
     // State for data
@@ -125,10 +127,10 @@ export function FacturacionDataTable({
                 const fechaInicio = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
                 const fechaFin = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
 
-                // Get editorial name or code from ID
-                // For now, we'll just use the first selected editorial if any
-                const editorial = selectedEditoriales.length > 0 ?
-                    selectedEditoriales[0] : undefined
+                // Use editorial name from map if available
+                const editorial = selectedEditoriales.length > 0 && editorialMap[selectedEditoriales[0]]
+                    ? editorialMap[selectedEditoriales[0]]
+                    : undefined
 
                 const result = await getFacturacionTable(fechaInicio, fechaFin, editorial)
 
@@ -148,7 +150,7 @@ export function FacturacionDataTable({
         }
 
         fetchData()
-    }, [selectedEditoriales, dateRange])
+    }, [selectedEditoriales, editorialMap, dateRange])
 
     // Sort data
     const sortedData = [...data].sort((a, b) => {

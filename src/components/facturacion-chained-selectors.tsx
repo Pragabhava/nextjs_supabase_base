@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
 import { getDistribuidoras, getEditoriales } from "@/app/actions/chained-selectors"
 
 // These types will match our server types
@@ -46,11 +47,16 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
     const [distribuidoras, setDistribuidoras] = useState<Distribuidora[]>([]);
     const [editoriales, setEditoriales] = useState<Editorial[]>([]);
 
-    // Initialize with empty selections
+    // Final selections (after apply is clicked)
     const [selectedDistribuidoras, setSelectedDistribuidoras] = useState<string[]>([]);
     const [selectedEditoriales, setSelectedEditoriales] = useState<string[]>([]);
 
-    // Notify parent component when selectedEditoriales changes
+    // Pending selections (before apply is clicked)
+    const [pendingDistribuidoras, setPendingDistribuidoras] = useState<string[]>([]);
+    const [pendingEditoriales, setPendingEditoriales] = useState<string[]>([]);
+    const [hasChanges, setHasChanges] = useState(false);
+
+    // Notify parent component when selectedEditoriales changes (after apply button is clicked)
     useEffect(() => {
         if (onEditorialesChange) {
             onEditorialesChange(selectedEditoriales);
@@ -97,8 +103,13 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                 setOptions(optionsMap);
 
                 // Set initial selections to all distribuidoras and editoriales
-                setSelectedDistribuidoras(distribuidorasResult.data.map(d => d.IdDistribuidora.toString()));
-                setSelectedEditoriales(editorialesResult.data.map(e => e.IdEditorial.toString()));
+                const allDistribuidoras = distribuidorasResult.data.map(d => d.IdDistribuidora.toString());
+                const allEditoriales = editorialesResult.data.map(e => e.IdEditorial.toString());
+
+                setSelectedDistribuidoras(allDistribuidoras);
+                setSelectedEditoriales(allEditoriales);
+                setPendingDistribuidoras(allDistribuidoras);
+                setPendingEditoriales(allEditoriales);
 
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -111,64 +122,75 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
         fetchData();
     }, []);
 
+    // Apply changes from pending to selected state
+    const handleApply = () => {
+        setSelectedDistribuidoras(pendingDistribuidoras);
+        setSelectedEditoriales(pendingEditoriales);
+        setHasChanges(false);
+    };
+
     // Helper function to get all items from all categories
     const getAllEditoriales = () => {
         return Object.values(options).flatMap(distribuidora => distribuidora.values);
     }
 
-    // Add these new functions for Select All functionality
+    // Modified functions for Select All functionality to update pending state
     const handleSelectAllDistribuidoras = (selectAll: boolean) => {
         const allDistribuidoraIds = Object.keys(options);
         if (selectAll) {
-            setSelectedDistribuidoras(allDistribuidoraIds);
+            setPendingDistribuidoras(allDistribuidoraIds);
             // When selecting all distribuidoras, also select all editoriales
-            setSelectedEditoriales(getAllEditoriales());
+            setPendingEditoriales(getAllEditoriales());
         } else {
-            setSelectedDistribuidoras([]);
-            setSelectedEditoriales([]);
+            setPendingDistribuidoras([]);
+            setPendingEditoriales([]);
         }
+        setHasChanges(true);
     }
 
     const handleSelectAllEditoriales = (selectAll: boolean) => {
-        const availableEditoriales = selectedDistribuidoras.flatMap(dist =>
+        const availableEditoriales = pendingDistribuidoras.flatMap(dist =>
             options[dist]?.values || []
         );
 
         if (selectAll) {
-            setSelectedEditoriales(availableEditoriales);
+            setPendingEditoriales(availableEditoriales);
         } else {
-            setSelectedEditoriales([]);
+            setPendingEditoriales([]);
         }
+        setHasChanges(true);
     }
 
     const handleDistribuidoraToggle = (distribuidora: string) => {
-        setSelectedDistribuidoras(prev => {
+        setPendingDistribuidoras(prev => {
             const newDistribuidoras = prev.includes(distribuidora)
                 ? prev.filter(d => d !== distribuidora)
                 : [...prev, distribuidora];
 
             // Update selected items based on selected categories
-            setSelectedEditoriales(prev => {
+            setPendingEditoriales(prev => {
                 const availableEditoriales = newDistribuidoras.flatMap(dist => options[dist]?.values || []);
                 return prev.filter(editorial => availableEditoriales.includes(editorial));
             });
 
             return newDistribuidoras;
         });
+        setHasChanges(true);
     }
 
     const handleEditorialToggle = (editorial: string) => {
-        setSelectedEditoriales(prev =>
+        setPendingEditoriales(prev =>
             prev.includes(editorial)
                 ? prev.filter(e => e !== editorial)
                 : [...prev, editorial]
         );
+        setHasChanges(true);
     }
 
     // Helper to check if an item is selectable (its category is selected)
     const isEditorialSelectable = (editorial: string) => {
         return Object.entries(options).some(([distribuidoraId, option]) =>
-            option.values.includes(editorial) && selectedDistribuidoras.includes(distribuidoraId)
+            option.values.includes(editorial) && pendingDistribuidoras.includes(distribuidoraId)
         );
     }
 
@@ -204,6 +226,11 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                                 <Badge variant="secondary">
                                     {selectedEditoriales.length} editoriales
                                 </Badge>
+                                {hasChanges && (
+                                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
+                                        Cambios pendientes
+                                    </Badge>
+                                )}
                             </div>
                         </div>
                     </AccordionTrigger>
@@ -214,7 +241,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-sm font-medium">Distribuidoras</h3>
                                     <Badge variant="outline">
-                                        {selectedDistribuidoras.length} distribuidoras
+                                        {pendingDistribuidoras.length} distribuidoras
                                     </Badge>
                                 </div>
                                 <div className="flex flex-col gap-2 p-4 border rounded-md">
@@ -222,7 +249,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                                         className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors border-b pb-2 mb-1"
                                     >
                                         <Checkbox
-                                            checked={selectedDistribuidoras.length === Object.keys(options).length}
+                                            checked={pendingDistribuidoras.length === Object.keys(options).length}
                                             onCheckedChange={(checked) => handleSelectAllDistribuidoras(!!checked)}
                                         />
                                         <span className="text-sm font-medium">
@@ -235,7 +262,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                                             className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
                                         >
                                             <Checkbox
-                                                checked={selectedDistribuidoras.includes(distribuidoraId)}
+                                                checked={pendingDistribuidoras.includes(distribuidoraId)}
                                                 onCheckedChange={() => handleDistribuidoraToggle(distribuidoraId)}
                                             />
                                             <span className="text-sm capitalize">
@@ -254,7 +281,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-sm font-medium">Editoriales</h3>
                                     <Badge variant="outline">
-                                        {selectedEditoriales.length} editoriales
+                                        {pendingEditoriales.length} editoriales
                                     </Badge>
                                 </div>
                                 <div className="flex flex-col gap-4 p-4 border rounded-md h-[300px] overflow-y-auto">
@@ -262,7 +289,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                                         className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors border-b pb-2 mb-1"
                                     >
                                         <Checkbox
-                                            checked={selectedEditoriales.length === selectedDistribuidoras.flatMap(dist => options[dist]?.values || []).length}
+                                            checked={pendingEditoriales.length === pendingDistribuidoras.flatMap(dist => options[dist]?.values || []).length}
                                             onCheckedChange={(checked) => handleSelectAllEditoriales(!!checked)}
                                         />
                                         <span className="text-sm font-medium">
@@ -283,7 +310,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                                                     )}
                                                 >
                                                     <Checkbox
-                                                        checked={selectedEditoriales.includes(editorialId)}
+                                                        checked={pendingEditoriales.includes(editorialId)}
                                                         onCheckedChange={() => handleEditorialToggle(editorialId)}
                                                         disabled={!isEditorialSelectable(editorialId)}
                                                     />
@@ -296,6 +323,18 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                                     ))}
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Apply Button */}
+                        <div className="flex justify-end mt-6 pt-2 border-t">
+                            <Button
+                                variant="default"
+                                size="sm"
+                                onClick={handleApply}
+                                disabled={!hasChanges}
+                            >
+                                Aplicar cambios
+                            </Button>
                         </div>
                     </AccordionContent>
                 </AccordionItem>
