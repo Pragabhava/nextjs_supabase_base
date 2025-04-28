@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import {
@@ -46,6 +46,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
     const [options, setOptions] = useState<Record<string, DistribuidoraOption>>({});
     const [distribuidoras, setDistribuidoras] = useState<Distribuidora[]>([]);
     const [editoriales, setEditoriales] = useState<Editorial[]>([]);
+    const accordionTriggerRef = useRef<HTMLButtonElement>(null);
 
     // Final selections (after apply is clicked)
     const [selectedDistribuidoras, setSelectedDistribuidoras] = useState<string[]>([]);
@@ -127,6 +128,11 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
         setSelectedDistribuidoras(pendingDistribuidoras);
         setSelectedEditoriales(pendingEditoriales);
         setHasChanges(false);
+
+        // Collapse the accordion by clicking the trigger
+        if (accordionTriggerRef.current) {
+            accordionTriggerRef.current.click();
+        }
     };
 
     // Helper function to get all items from all categories
@@ -216,7 +222,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
         >
             <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="selectors">
-                    <AccordionTrigger className="hover:no-underline px-4 py-3">
+                    <AccordionTrigger className="hover:no-underline px-4 py-3" ref={accordionTriggerRef}>
                         <div className="flex items-center gap-4">
                             <span>Filtros</span>
                             <div className="flex gap-2">
