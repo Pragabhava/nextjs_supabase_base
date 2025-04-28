@@ -1,0 +1,305 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { getDistribuidoras, getEditoriales } from "@/app/actions/chained-selectors"
+
+// These types will match our server types
+type Distribuidora = {
+    IdDistribuidora: number;
+    CodigoDistribuidora: string;
+    Distribuidora: string;
+}
+
+type Editorial = {
+    IdEditorial: number;
+    CodigoEditorial: string;
+    Editorial: string;
+    IdDistribuidora: number;
+    CodigoDistribuidora: string;
+    Distribuidora: string;
+}
+
+// This will be built dynamically from the fetched data
+interface DistribuidoraOption {
+    name: string;
+    values: string[]; // Store editorial IDs as strings
+}
+
+interface FacturacionChainedSelectorsProps {
+    onEditorialesChange?: (editorials: string[]) => void
+}
+
+export function FacturacionChainedSelectors({ onEditorialesChange }: FacturacionChainedSelectorsProps) {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [options, setOptions] = useState<Record<string, DistribuidoraOption>>({});
+    const [distribuidoras, setDistribuidoras] = useState<Distribuidora[]>([]);
+    const [editoriales, setEditoriales] = useState<Editorial[]>([]);
+
+    // Initialize with empty selections
+    const [selectedDistribuidoras, setSelectedDistribuidoras] = useState<string[]>([]);
+    const [selectedEditoriales, setSelectedEditoriales] = useState<string[]>([]);
+
+    // Notify parent component when selectedEditoriales changes
+    useEffect(() => {
+        if (onEditorialesChange) {
+            onEditorialesChange(selectedEditoriales);
+        }
+    }, [selectedEditoriales, onEditorialesChange]);
+
+    useEffect(() => {
+        async function fetchData() {
+            setLoading(true);
+            try {
+                // Fetch distribuidoras and editoriales
+                const [distribuidorasResult, editorialesResult] = await Promise.all([
+                    getDistribuidoras(),
+                    getEditoriales()
+                ]);
+
+                if (distribuidorasResult.error) {
+                    throw new Error(distribuidorasResult.error);
+                }
+
+                if (editorialesResult.error) {
+                    throw new Error(editorialesResult.error);
+                }
+
+                // Store the raw data
+                setDistribuidoras(distribuidorasResult.data);
+                setEditoriales(editorialesResult.data);
+
+                // Build the options structure
+                const optionsMap: Record<string, DistribuidoraOption> = {};
+
+                distribuidorasResult.data.forEach(distribuidora => {
+                    // Find all editoriales for this distribuidora
+                    const distribuidoraEditoriales = editorialesResult.data
+                        .filter(editorial => editorial.IdDistribuidora === distribuidora.IdDistribuidora)
+                        .map(editorial => editorial.IdEditorial.toString());
+
+                    optionsMap[distribuidora.IdDistribuidora.toString()] = {
+                        name: distribuidora.Distribuidora,
+                        values: distribuidoraEditoriales
+                    };
+                });
+
+                setOptions(optionsMap);
+
+                // Set initial selections to all distribuidoras and editoriales
+                setSelectedDistribuidoras(distribuidorasResult.data.map(d => d.IdDistribuidora.toString()));
+                setSelectedEditoriales(editorialesResult.data.map(e => e.IdEditorial.toString()));
+
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to load data');
+                console.error('Error loading data:', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchData();
+    }, []);
+
+    // Helper function to get all items from all categories
+    const getAllEditoriales = () => {
+        return Object.values(options).flatMap(distribuidora => distribuidora.values);
+    }
+
+    // Add these new functions for Select All functionality
+    const handleSelectAllDistribuidoras = (selectAll: boolean) => {
+        const allDistribuidoraIds = Object.keys(options);
+        if (selectAll) {
+            setSelectedDistribuidoras(allDistribuidoraIds);
+            // When selecting all distribuidoras, also select all editoriales
+            setSelectedEditoriales(getAllEditoriales());
+        } else {
+            setSelectedDistribuidoras([]);
+            setSelectedEditoriales([]);
+        }
+    }
+
+    const handleSelectAllEditoriales = (selectAll: boolean) => {
+        const availableEditoriales = selectedDistribuidoras.flatMap(dist =>
+            options[dist]?.values || []
+        );
+
+        if (selectAll) {
+            setSelectedEditoriales(availableEditoriales);
+        } else {
+            setSelectedEditoriales([]);
+        }
+    }
+
+    const handleDistribuidoraToggle = (distribuidora: string) => {
+        setSelectedDistribuidoras(prev => {
+            const newDistribuidoras = prev.includes(distribuidora)
+                ? prev.filter(d => d !== distribuidora)
+                : [...prev, distribuidora];
+
+            // Update selected items based on selected categories
+            setSelectedEditoriales(prev => {
+                const availableEditoriales = newDistribuidoras.flatMap(dist => options[dist]?.values || []);
+                return prev.filter(editorial => availableEditoriales.includes(editorial));
+            });
+
+            return newDistribuidoras;
+        });
+    }
+
+    const handleEditorialToggle = (editorial: string) => {
+        setSelectedEditoriales(prev =>
+            prev.includes(editorial)
+                ? prev.filter(e => e !== editorial)
+                : [...prev, editorial]
+        );
+    }
+
+    // Helper to check if an item is selectable (its category is selected)
+    const isEditorialSelectable = (editorial: string) => {
+        return Object.entries(options).some(([distribuidoraId, option]) =>
+            option.values.includes(editorial) && selectedDistribuidoras.includes(distribuidoraId)
+        );
+    }
+
+    // Function to get editorial name by id
+    const getEditorialName = (id: string) => {
+        const editorial = editoriales.find(e => e.IdEditorial.toString() === id);
+        return editorial?.Editorial || id;
+    }
+
+    if (loading) {
+        return <div className="flex items-center justify-center p-8">Loading...</div>;
+    }
+
+    if (error) {
+        return <div className="text-red-500 p-4">Error: {error}</div>;
+    }
+
+    return (
+        <div
+            className={cn(
+                "bg-card text-card-foreground rounded-xl border shadow-sm",
+            )}
+        >
+            <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="selectors">
+                    <AccordionTrigger className="hover:no-underline px-4 py-3">
+                        <div className="flex items-center gap-4">
+                            <span>Filtros</span>
+                            <div className="flex gap-2">
+                                <Badge variant="secondary">
+                                    {selectedDistribuidoras.length} distribuidoras
+                                </Badge>
+                                <Badge variant="secondary">
+                                    {selectedEditoriales.length} editoriales
+                                </Badge>
+                            </div>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                            {/* Distribuidoras Section */}
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-sm font-medium">Distribuidoras</h3>
+                                    <Badge variant="outline">
+                                        {selectedDistribuidoras.length} distribuidoras
+                                    </Badge>
+                                </div>
+                                <div className="flex flex-col gap-2 p-4 border rounded-md">
+                                    <label
+                                        className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors border-b pb-2 mb-1"
+                                    >
+                                        <Checkbox
+                                            checked={selectedDistribuidoras.length === Object.keys(options).length}
+                                            onCheckedChange={(checked) => handleSelectAllDistribuidoras(!!checked)}
+                                        />
+                                        <span className="text-sm font-medium">
+                                            Seleccionar todas
+                                        </span>
+                                    </label>
+                                    {Object.keys(options).map((distribuidoraId) => (
+                                        <label
+                                            key={distribuidoraId}
+                                            className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
+                                        >
+                                            <Checkbox
+                                                checked={selectedDistribuidoras.includes(distribuidoraId)}
+                                                onCheckedChange={() => handleDistribuidoraToggle(distribuidoraId)}
+                                            />
+                                            <span className="text-sm capitalize">
+                                                {options[distribuidoraId].name}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Separator for mobile */}
+                            <Separator className="md:hidden my-4" />
+
+                            {/* Editoriales Section */}
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-sm font-medium">Editoriales</h3>
+                                    <Badge variant="outline">
+                                        {selectedEditoriales.length} editoriales
+                                    </Badge>
+                                </div>
+                                <div className="flex flex-col gap-4 p-4 border rounded-md h-[300px] overflow-y-auto">
+                                    <label
+                                        className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors border-b pb-2 mb-1"
+                                    >
+                                        <Checkbox
+                                            checked={selectedEditoriales.length === selectedDistribuidoras.flatMap(dist => options[dist]?.values || []).length}
+                                            onCheckedChange={(checked) => handleSelectAllEditoriales(!!checked)}
+                                        />
+                                        <span className="text-sm font-medium">
+                                            Seleccionar todas
+                                        </span>
+                                    </label>
+                                    {Object.entries(options).map(([distribuidoraId, option]) => (
+                                        <div key={distribuidoraId} className="flex flex-col gap-2">
+                                            <div className="text-xs text-muted-foreground tracking-wider">
+                                                {option.name}
+                                            </div>
+                                            {option.values.map((editorialId) => (
+                                                <label
+                                                    key={editorialId}
+                                                    className={cn(
+                                                        "flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors",
+                                                        !isEditorialSelectable(editorialId) && "opacity-50"
+                                                    )}
+                                                >
+                                                    <Checkbox
+                                                        checked={selectedEditoriales.includes(editorialId)}
+                                                        onCheckedChange={() => handleEditorialToggle(editorialId)}
+                                                        disabled={!isEditorialSelectable(editorialId)}
+                                                    />
+                                                    <span className="text-sm capitalize">
+                                                        {getEditorialName(editorialId)}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+        </div>
+    )
+} 

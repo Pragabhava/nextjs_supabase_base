@@ -48,7 +48,7 @@ export async function getEditoriales() {
             SELECT
                   1 as IdEditorial
                 , 'SPM' as CodigoEditorial
-                , 'Sexto Piso' as Editorial
+                , 'Editorial Sexto Piso' as Editorial
                 , 1 as IdDistribuidora
                 , 'SPM' as CodigoDistribuidora
                 , 'Sexto Piso México' as Distribuidora
