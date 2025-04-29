@@ -6,6 +6,11 @@ import { FacturacionChainedSelectors } from "@/components/facturacion-chained-se
 import { FacturacionDataTable } from "@/components/facturacion-data-table"
 import { getEditoriales, type Editorial } from "@/app/actions/chained-selectors"
 
+// Helper function to create composite key - must match the one in chained-selectors
+function createCompositeKey(distribuidoraId: number | string, editorialId: number | string): string {
+    return `${distribuidoraId}:${editorialId}`;
+}
+
 export function FacturacionFilters() {
     const [selectedEditoriales, setSelectedEditoriales] = useState<string[]>([])
     const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
@@ -21,7 +26,9 @@ export function FacturacionFilters() {
             if (!result.error) {
                 const map: Record<string, string> = {}
                 result.data.forEach((e: Editorial) => {
-                    map[e.IdEditorial.toString()] = e.Editorial
+                    // Create composite key including distribuidora ID
+                    const compositeKey = createCompositeKey(e.IdDistribuidora, e.IdEditorial);
+                    map[compositeKey] = e.Editorial
                 })
                 setEditorialMap(map)
             }

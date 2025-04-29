@@ -12,7 +12,7 @@ export type Facturacion = {
     Importe: number;
 }
 
-export async function getFacturacionTable(fechaInicio: string, fechaFin: string, editorial?: string) {
+export async function getFacturacionTable(fechaInicio: string, fechaFin: string, editoriales?: string[]) {
     try {
         let query = `
             SELECT
@@ -20,7 +20,10 @@ export async function getFacturacionTable(fechaInicio: string, fechaFin: string,
                 , CAST(fmu.TITULO AS nvarchar(1000)) AS Titulo
                 , fmu.AUTOR AS Autor
                 , fmu.EDITORIAL AS Editorial
-                , ROUND(SUM(fmu.IMPORTE) / SUM(fmu.UNIDADES), 2) AS PvpEfectivo
+                , CASE 
+                    WHEN SUM(fmu.UNIDADES) = 0 THEN NULL 
+                    ELSE ROUND(SUM(fmu.IMPORTE) / NULLIF(SUM(fmu.UNIDADES), 0), 2) 
+                  END AS PvpEfectivo
                 , SUM(fmu.UNIDADES) AS Unidades
                 , SUM(fmu.IMPORTE) AS Importe
             FROM
@@ -31,10 +34,21 @@ export async function getFacturacionTable(fechaInicio: string, fechaFin: string,
                 AND CTIPO = 'Factura Crédito'
         `;
         const params: (string | number | boolean | Date | Buffer | null)[] = [fechaInicio, fechaFin];
-        if (editorial) {
-            query += `\n                AND fmu.EDITORIAL = @p2`;
-            params.push(editorial);
+
+        // Handle editorial filtering
+        if (editoriales && editoriales.length > 0) {
+            if (editoriales.length === 1) {
+                // Single editorial case - use equality
+                query += `\n                AND fmu.EDITORIAL = @p2`;
+                params.push(editoriales[0]);
+            } else {
+                // Multiple editorials case - use IN clause
+                const placeholders = editoriales.map((_, index) => `@p${index + 2}`).join(', ');
+                query += `\n                AND fmu.EDITORIAL IN (${placeholders})`;
+                editoriales.forEach(editorial => params.push(editorial));
+            }
         }
+
         query += `\n            GROUP BY
                   fmu.CISBN
                 , CAST(fmu.TITULO AS nvarchar(1000))

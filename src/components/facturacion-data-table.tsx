@@ -127,12 +127,12 @@ export function FacturacionDataTable({
                 const fechaInicio = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
                 const fechaFin = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
 
-                // Use editorial name from map if available
-                const editorial = selectedEditoriales.length > 0 && editorialMap[selectedEditoriales[0]]
-                    ? editorialMap[selectedEditoriales[0]]
-                    : undefined
+                // Get all selected editorial names from the map using composite keys
+                const editorialesArray = selectedEditoriales.length > 0
+                    ? selectedEditoriales.map(compositeKey => editorialMap[compositeKey]).filter(Boolean)
+                    : [];
 
-                const result = await getFacturacionTable(fechaInicio, fechaFin, editorial)
+                const result = await getFacturacionTable(fechaInicio, fechaFin, editorialesArray)
 
                 if (result.error) {
                     throw new Error(result.error)

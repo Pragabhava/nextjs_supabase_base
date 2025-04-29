@@ -30,10 +30,15 @@ type Editorial = {
     Distribuidora: string;
 }
 
+// Helper function to create composite key
+function createCompositeKey(distribuidoraId: number | string, editorialId: number | string): string {
+    return `${distribuidoraId}:${editorialId}`;
+}
+
 // This will be built dynamically from the fetched data
 interface DistribuidoraOption {
     name: string;
-    values: string[]; // Store editorial IDs as strings
+    values: string[]; // Store composite keys (distribuidoraId:editorialId)
 }
 
 interface FacturacionChainedSelectorsProps {
@@ -86,16 +91,18 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                 setDistribuidoras(distribuidorasResult.data);
                 setEditoriales(editorialesResult.data);
 
-                // Build the options structure
+                // Build the options structure with composite keys
                 const optionsMap: Record<string, DistribuidoraOption> = {};
 
                 distribuidorasResult.data.forEach(distribuidora => {
-                    // Find all editoriales for this distribuidora
+                    const distribuidoraId = distribuidora.IdDistribuidora.toString();
+
+                    // Find all editoriales for this distribuidora and create composite keys
                     const distribuidoraEditoriales = editorialesResult.data
                         .filter(editorial => editorial.IdDistribuidora === distribuidora.IdDistribuidora)
-                        .map(editorial => editorial.IdEditorial.toString());
+                        .map(editorial => createCompositeKey(distribuidoraId, editorial.IdEditorial));
 
-                    optionsMap[distribuidora.IdDistribuidora.toString()] = {
+                    optionsMap[distribuidoraId] = {
                         name: distribuidora.Distribuidora,
                         values: distribuidoraEditoriales
                     };
@@ -105,7 +112,11 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
 
                 // Set initial selections to all distribuidoras and editoriales
                 const allDistribuidoras = distribuidorasResult.data.map(d => d.IdDistribuidora.toString());
-                const allEditoriales = editorialesResult.data.map(e => e.IdEditorial.toString());
+
+                // Create composite keys for all editoriales
+                const allEditoriales = editorialesResult.data.map(e =>
+                    createCompositeKey(e.IdDistribuidora, e.IdEditorial)
+                );
 
                 setSelectedDistribuidoras(allDistribuidoras);
                 setSelectedEditoriales(allEditoriales);
@@ -128,8 +139,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
         setSelectedDistribuidoras(pendingDistribuidoras);
         setSelectedEditoriales(pendingEditoriales);
         setHasChanges(false);
-
-        // Collapse the accordion by clicking the trigger
+        // Close accordion on apply
         if (accordionTriggerRef.current) {
             accordionTriggerRef.current.click();
         }
@@ -195,15 +205,18 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
 
     // Helper to check if an item is selectable (its category is selected)
     const isEditorialSelectable = (editorial: string) => {
-        return Object.entries(options).some(([distribuidoraId, option]) =>
-            option.values.includes(editorial) && pendingDistribuidoras.includes(distribuidoraId)
-        );
+        // For composite keys, we need to extract the distribuidora ID
+        const distribuidoraId = editorial.split(':')[0];
+        return pendingDistribuidoras.includes(distribuidoraId);
     }
 
-    // Function to get editorial name by id
-    const getEditorialName = (id: string) => {
-        const editorial = editoriales.find(e => e.IdEditorial.toString() === id);
-        return editorial?.Editorial || id;
+    // Function to get editorial name by composite key
+    const getEditorialName = (compositeKey: string) => {
+        const [distribuidoraId, editorialId] = compositeKey.split(':').map(Number);
+        const editorial = editoriales.find(e =>
+            e.IdEditorial === editorialId && e.IdDistribuidora === distribuidoraId
+        );
+        return editorial?.Editorial || compositeKey;
     }
 
     if (loading) {
