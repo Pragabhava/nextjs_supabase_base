@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { format } from "date-fns"
 import { getFacturacionTable, type Facturacion } from '@/app/actions/facturacion-table'
 import {
@@ -19,8 +19,8 @@ import {
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
-    Columns,
-    LayoutList,
+    // Columns,
+    // LayoutList,
     TableProperties,
     Search
 } from "lucide-react"
@@ -34,13 +34,13 @@ import {
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuLabel,
+    // DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+// import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 
 interface FacturacionDataTableProps {
@@ -73,13 +73,20 @@ function formatNumber(value: number | null | undefined): string {
     return new Intl.NumberFormat('es-MX').format(value);
 }
 
+// Helper function to safely convert to number
+function toSafeNumber(value: unknown): number | null | undefined {
+    if (value === null || value === undefined) return value;
+    const num = Number(value);
+    return isNaN(num) ? 0 : num;
+}
+
 // Column definition type
 type Column = {
     key: keyof Facturacion;
     header: string;
     sortable: boolean;
     align?: 'left' | 'right';
-    format?: (value: any) => string;
+    format?: (value: unknown) => string;
     width?: string;
 }
 
@@ -116,7 +123,7 @@ export function FacturacionDataTable({
             header: 'PVP',
             sortable: true,
             align: 'right',
-            format: (value) => formatCurrency(value),
+            format: (value) => formatCurrency(toSafeNumber(value)),
             width: 'w-24'
         },
         {
@@ -124,7 +131,7 @@ export function FacturacionDataTable({
             header: 'PVP\nEfectivo',
             sortable: true,
             align: 'right',
-            format: (value) => formatCurrency(value),
+            format: (value) => formatCurrency(toSafeNumber(value)),
             width: 'w-24'
         },
         {
@@ -132,7 +139,7 @@ export function FacturacionDataTable({
             header: 'Unidades\nFacturadas',
             sortable: true,
             align: 'right',
-            format: (value) => formatNumber(value),
+            format: (value) => formatNumber(toSafeNumber(value)),
             width: 'w-24'
         },
         {
@@ -140,7 +147,7 @@ export function FacturacionDataTable({
             header: 'Unidades\nDevueltas',
             sortable: true,
             align: 'right',
-            format: (value) => formatNumber(value),
+            format: (value) => formatNumber(toSafeNumber(value)),
             width: 'w-24'
         },
         {
@@ -148,7 +155,7 @@ export function FacturacionDataTable({
             header: 'Unidades\nNetas',
             sortable: true,
             align: 'right',
-            format: (value) => formatNumber(value),
+            format: (value) => formatNumber(toSafeNumber(value)),
             width: 'w-24'
         },
         {
@@ -156,7 +163,7 @@ export function FacturacionDataTable({
             header: 'Importe',
             sortable: true,
             align: 'right',
-            format: (value) => formatCurrency(value),
+            format: (value) => formatCurrency(toSafeNumber(value)),
             width: 'w-24'
         },
         {
@@ -164,7 +171,7 @@ export function FacturacionDataTable({
             header: 'Importe\nDevuelto',
             sortable: true,
             align: 'right',
-            format: (value) => formatCurrency(value),
+            format: (value) => formatCurrency(toSafeNumber(value)),
             width: 'w-24'
         },
         {
@@ -172,7 +179,7 @@ export function FacturacionDataTable({
             header: 'Importe\nNeto',
             sortable: true,
             align: 'right',
-            format: (value) => formatCurrency(value),
+            format: (value) => formatCurrency(toSafeNumber(value)),
             width: 'w-24'
         }
     ]
@@ -208,7 +215,7 @@ export function FacturacionDataTable({
             if (dropdownOpen) {
                 setTempVisibleColumns({ ...visibleColumns });
             }
-        }, [dropdownOpen, visibleColumns]);
+        }, [dropdownOpen]);
 
         // Count visible columns
         const visibleColumnCount = Object.values(tempVisibleColumns).filter(Boolean).length;
@@ -373,8 +380,8 @@ export function FacturacionDataTable({
         );
     };
 
-    // Fetch data when filters change
-    const fetchData = async () => {
+    // Fetch data when filters change - wrapped with useCallback
+    const fetchData = useCallback(async () => {
         setLoading(true)
         setError(null)
         setIsTimeout(false)
@@ -418,11 +425,11 @@ export function FacturacionDataTable({
         } finally {
             setLoading(false)
         }
-    }
+    }, [selectedEditoriales, editorialMap, dateRange]); // Add dependencies used inside fetchData
 
     useEffect(() => {
         fetchData()
-    }, [selectedEditoriales, editorialMap, dateRange])
+    }, [fetchData]) // Now uses memoized fetchData function
 
     // Sort data
     const sortedData = [...data].sort((a, b) => {

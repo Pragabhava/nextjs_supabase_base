@@ -14,11 +14,11 @@ import { Separator } from "@/components/ui/separator"
 import { getDistribuidoras, getEditoriales } from "@/app/actions/chained-selectors"
 
 // These types will match our server types
-type Distribuidora = {
-    IdDistribuidora: number;
-    CodigoDistribuidora: string;
-    Distribuidora: string;
-}
+// type Distribuidora = {
+//     IdDistribuidora: number;
+//     CodigoDistribuidora: string;
+//     Distribuidora: string;
+// }
 
 type Editorial = {
     IdEditorial: number;
@@ -39,7 +39,6 @@ export function ChainedSelectors() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [options, setOptions] = useState<Record<string, DistribuidoraOption>>({});
-    const [distribuidoras, setDistribuidoras] = useState<Distribuidora[]>([]);
     const [editoriales, setEditoriales] = useState<Editorial[]>([]);
 
     // Initialize with empty selections
@@ -65,7 +64,6 @@ export function ChainedSelectors() {
                 }
 
                 // Store the raw data
-                setDistribuidoras(distribuidorasResult.data);
                 setEditoriales(editorialesResult.data);
 
                 // Build the options structure

@@ -15,11 +15,11 @@ import { Button } from "@/components/ui/button"
 import { getDistribuidoras, getEditoriales } from "@/app/actions/chained-selectors"
 
 // These types will match our server types
-type Distribuidora = {
-    IdDistribuidora: number;
-    CodigoDistribuidora: string;
-    Distribuidora: string;
-}
+// type Distribuidora = {
+//     IdDistribuidora: number;
+//     CodigoDistribuidora: string;
+//     Distribuidora: string;
+// }
 
 type Editorial = {
     IdEditorial: number;
@@ -49,7 +49,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [options, setOptions] = useState<Record<string, DistribuidoraOption>>({});
-    const [distribuidoras, setDistribuidoras] = useState<Distribuidora[]>([]);
+    // const [distribuidoras, setDistribuidoras] = useState<Distribuidora[]>([]);
     const [editoriales, setEditoriales] = useState<Editorial[]>([]);
     const accordionTriggerRef = useRef<HTMLButtonElement>(null);
 
@@ -88,7 +88,7 @@ export function FacturacionChainedSelectors({ onEditorialesChange }: Facturacion
                 }
 
                 // Store the raw data
-                setDistribuidoras(distribuidorasResult.data);
+                // setDistribuidoras(distribuidorasResult.data);
                 setEditoriales(editorialesResult.data);
 
                 // Build the options structure with composite keys

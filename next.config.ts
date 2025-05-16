@@ -2,7 +2,7 @@
 const config = {
   output: 'standalone',
   experimental: {
-    serverActions: true,
+    serverActions: {},
   }
 }
 

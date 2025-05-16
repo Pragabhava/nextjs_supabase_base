@@ -19,7 +19,7 @@ export type Facturacion = {
 
 export async function getFacturacionTable(fechaInicio: string, fechaFin: string, editoriales?: string[]) {
     try {
-        let spQuery = `
+        const spQuery = `
             SELECT
                 PRO.CCODIGOPRODUCTO AS ISBN
                 ,PRO.CNOMBREPRODUCTO AS Titulo
@@ -71,7 +71,7 @@ export async function getFacturacionTable(fechaInicio: string, fechaFin: string,
                 ,PRO.CTEXTOEXTRA1
                 ,PRO.CPRECIO1
         `
-        let distQuery = `
+        const distQuery = `
             SELECT
                 PRO.CCODIGOPRODUCTO AS ISBN
                 ,PRO.CNOMBREPRODUCTO AS Titulo

@@ -1,5 +1,5 @@
-import { ChartAreaInteractive } from '@/components/chart-area-interactive'
-import { SectionCards } from '@/components/section-cards'
+// import { ChartAreaInteractive } from '@/components/chart-area-interactive'
+// import { SectionCards } from '@/components/section-cards'
 import { FacturacionFilters } from '@/components/facturacion-filters'
 
 export default function ProtectedPage() {

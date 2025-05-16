@@ -2,7 +2,19 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Menu, Search, ChevronsUpDown, CircleHelp, Inbox, User as UserIcon, Settings, Command, FlaskConical, LogOut } from "lucide-react"
+import Image from "next/image"
+import {
+    Menu,
+    Search,
+    // ChevronsUpDown,
+    // CircleHelp,
+    // Inbox,
+    User as UserIcon,
+    // Settings,
+    // Command,
+    // FlaskConical,
+    LogOut
+} from "lucide-react"
 import {
     NavigationMenu,
     NavigationMenuList,
@@ -23,20 +35,20 @@ import { User } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
-import { getProjectSelector, ProjectSelector } from "@/app/actions/navigation"
-import { useEffect, useState } from "react"
+import { getProjectSelector } from "@/app/actions/navigation"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
+    useEffect,
+    // useState
+} from "react"
+// import {
+//     Select,
+//     SelectContent,
+//     SelectItem,
+//     SelectTrigger,
+//     SelectValue,
+// } from "@/components/ui/select"
 
 export function Navigation({ user }: { user: User }) {
-    const [loading, setLoading] = useState(true)
-    const [projectSelector, setProjectSelector] = useState<ProjectSelector[]>([])
-    const [selectedProject, setSelectedProject] = useState<string>("")
     const { theme, setTheme } = useTheme()
     const router = useRouter()
 
@@ -49,37 +61,24 @@ export function Navigation({ user }: { user: User }) {
     useEffect(() => {
         const loadProjectSelector = async () => {
             try {
-                setLoading(true)
-
                 const projectResult = await getProjectSelector()
                 if (projectResult.error) {
                     console.error("Error loading project selector:", projectResult.error)
-                    setProjectSelector([])
                     return
                 }
 
                 console.log("Project selector loaded:", projectResult.data)
-                setProjectSelector(projectResult.data || [])
 
-                // Set the first project as selected by default if there are projects
-                if (projectResult.data && projectResult.data.length > 0) {
-                    setSelectedProject(projectResult.data[0].id.toString())
-                }
+                // You can uncomment and use this when needed
+                // if (projectResult.data && projectResult.data.length > 0) {
+                //     // Set first project as default
+                // }
             } catch (error) {
                 console.error("Error loading project selector:", error)
-                setProjectSelector([])
-            } finally {
-                setLoading(false)
             }
         }
         loadProjectSelector()
     }, [])
-
-    const handleProjectChange = (projectId: string) => {
-        setSelectedProject(projectId)
-        // Here you can add navigation logic if needed when switching projects
-        // For example: router.push(`/project/${projectId}`)
-    }
 
     return (
         <div className="flex-shrink-0 sticky top-0 z-50 bg-white dark:bg-black">
@@ -87,7 +86,13 @@ export function Navigation({ user }: { user: User }) {
             <div className="flex flex-row md:hidden h-14 w-full">
                 <nav className="group px-4 z-10 w-full h-14 border-b bg-dash-sidebar border-default shadow-xl transition-width duration-200 hide-scrollbar flex flex-row items-center justify-between overflow-x-auto">
                     <Link href="/dashboard" className="flex items-center h-[26px] w-[26px] min-w-[26px]">
-                        <img alt="Logo" src="/logo.svg" className="absolute h-[26px] w-[26px] cursor-pointer rounded" />
+                        <Image
+                            src="/logo.svg"
+                            alt="Logo"
+                            width={26}
+                            height={26}
+                            className="absolute cursor-pointer rounded"
+                        />
                     </Link>
                     <div className="flex gap-2">
                         <button className="whitespace-nowrap border border-input text-sm font-medium hover:bg-accent ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group flex-grow h-[30px] rounded-md p-2 flex items-center justify-between bg-transparent border-none text-foreground-lighter hover:bg-opacity-100 hover:border-strong hover:text-foreground-light focus-visible:!outline-4 focus-visible:outline-offset-1 focus-visible:outline-brand-600 transition">
@@ -107,7 +112,12 @@ export function Navigation({ user }: { user: User }) {
                 <div className="flex items-center justify-between h-full pr-3 flex-1 overflow-x-auto gap-x-4 md:pl-4">
                     <div className="flex items-center text-sm">
                         <Link href="/protected" className="items-center justify-center flex-shrink-0 hidden md:flex">
-                            <img alt="SP" src="/logo.svg" className="w-[18px] h-[18px]" />
+                            <Image
+                                src="/logo.svg"
+                                alt="SP"
+                                width={18}
+                                height={18}
+                            />
                         </Link>
 
                         <NavigationMenu>
