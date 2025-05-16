@@ -122,7 +122,7 @@ export function Navigation({ user }: { user: User }) {
                                     </button>
                                 </NavigationMenuItem>
 
-                                <NavigationMenuItem>
+                                {/* <NavigationMenuItem>
                                     {!loading && projectSelector.length > 0 ? (
                                         <Select value={selectedProject} onValueChange={handleProjectChange}>
                                             <SelectTrigger className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground hover:bg-surface-300 shadow-none focus-visible:outline-border-strong data-[state=open]:bg-surface-300 data-[state=open]:outline-border-strong border-transparent text-xs px-2.5 py-1 h-[26px] pr-2">
@@ -146,19 +146,19 @@ export function Navigation({ user }: { user: User }) {
                                             <ChevronsUpDown className="h-[14px] w-[14px] text-foreground-lighter" />
                                         </button>
                                     )}
-                                </NavigationMenuItem>
+                                </NavigationMenuItem> */}
                             </NavigationMenuList>
                         </NavigationMenu>
                     </div>
 
                     {/* Right side buttons */}
                     <div className="flex items-center gap-x-2">
-                        <button className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground hover:bg-surface-300 shadow-none focus-visible:outline-border-strong data-[state=open]:bg-surface-300 data-[state=open]:outline-border-strong border-transparent text-xs py-1 h-[26px] px-1">
+                        {/* <button className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground hover:bg-surface-300 shadow-none focus-visible:outline-border-strong data-[state=open]:bg-surface-300 data-[state=open]:outline-border-strong border-transparent text-xs py-1 h-[26px] px-1">
                             <Inbox className="h-[14px] w-[14px] text-foreground-lighter" />
                         </button>
                         <button className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground hover:bg-surface-300 shadow-none focus-visible:outline-border-strong data-[state=open]:bg-surface-300 data-[state=open]:outline-border-strong border-transparent text-xs py-1 h-[26px] px-1">
                             <CircleHelp className="h-[14px] w-[14px] text-foreground-lighter" />
-                        </button>
+                        </button> */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button className="relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 text-foreground bg-alternative dark:bg-muted hover:bg-selection border-strong hover:border-stronger focus-visible:outline-brand-600 data-[state=open]:bg-selection data-[state=open]:outline-brand-600 data-[state=open]:border-button-hover text-xs border flex-shrink-0 [&>span]:flex px-0 py-0 rounded-full overflow-hidden h-8 w-8">

@@ -18,7 +18,10 @@ import {
     ChevronRight,
     ArrowUpDown,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    Columns,
+    LayoutList,
+    TableProperties
 } from "lucide-react"
 import {
     Select,
@@ -27,6 +30,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface FacturacionDataTableProps {
     selectedEditoriales: string[]
@@ -83,40 +96,276 @@ export function FacturacionDataTable({
     const [pageSize, setPageSize] = useState(50)
 
     // Sorting state
-    const [sortColumn, setSortColumn] = useState<keyof Facturacion>('Unidades')
+    const [sortColumn, setSortColumn] = useState<keyof Facturacion>('UnidadesFacturadas')
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
     // Define columns
     const columns: Column[] = [
-        { key: 'ISBN', header: 'ISBN', sortable: true, width: 'w-28' },
-        { key: 'Titulo', header: 'Título', sortable: true, width: 'w-72 max-w-md' },
-        { key: 'Autor', header: 'Autor', sortable: true, width: 'w-48' },
-        { key: 'Editorial', header: 'Editorial', sortable: true, width: 'w-48' },
+        { key: 'ISBN', header: 'ISBN', sortable: true, width: 'w-24' },
+        { key: 'Titulo', header: 'Título', sortable: true, width: 'w-56 max-w-xs' },
+        { key: 'Autor', header: 'Autor', sortable: true, width: 'w-40' },
+        { key: 'Editorial', header: 'Editorial', sortable: true, width: 'w-40' },
         {
-            key: 'PvpEfectivo',
-            header: 'PVP Efectivo',
+            key: 'PVP',
+            header: 'PVP',
             sortable: true,
             align: 'right',
             format: (value) => formatCurrency(value),
-            width: 'w-32'
+            width: 'w-24'
         },
         {
-            key: 'Unidades',
-            header: 'Unidades',
+            key: 'PvpEfectivo',
+            header: 'PVP\nEfectivo',
+            sortable: true,
+            align: 'right',
+            format: (value) => formatCurrency(value),
+            width: 'w-24'
+        },
+        {
+            key: 'UnidadesFacturadas',
+            header: 'Unidades\nFacturadas',
             sortable: true,
             align: 'right',
             format: (value) => formatNumber(value),
-            width: 'w-28'
+            width: 'w-24'
         },
         {
-            key: 'Importe',
+            key: 'UnidadesDevueltas',
+            header: 'Unidades\nDevueltas',
+            sortable: true,
+            align: 'right',
+            format: (value) => formatNumber(value),
+            width: 'w-24'
+        },
+        {
+            key: 'UnidadesNetas',
+            header: 'Unidades\nNetas',
+            sortable: true,
+            align: 'right',
+            format: (value) => formatNumber(value),
+            width: 'w-24'
+        },
+        {
+            key: 'ImporteFacturado',
             header: 'Importe',
             sortable: true,
             align: 'right',
             format: (value) => formatCurrency(value),
-            width: 'w-32'
+            width: 'w-24'
+        },
+        {
+            key: 'ImporteDevuelto',
+            header: 'Importe\nDevuelto',
+            sortable: true,
+            align: 'right',
+            format: (value) => formatCurrency(value),
+            width: 'w-24'
+        },
+        {
+            key: 'ImporteNeto',
+            header: 'Importe\nNeto',
+            sortable: true,
+            align: 'right',
+            format: (value) => formatCurrency(value),
+            width: 'w-24'
         }
     ]
+
+    // Column visibility state
+    const [visibleColumns, setVisibleColumns] = useState<Record<keyof Facturacion, boolean>>(
+        Object.fromEntries(columns.map(column => [column.key, true])) as Record<keyof Facturacion, boolean>
+    );
+
+    // Filter columns based on visibility
+    const displayColumns = columns.filter(column => visibleColumns[column.key]);
+
+    // Column visibility dropdown component
+    const ColumnVisibilityDropdown = () => {
+        // Add temporary state for column visibility that only gets applied when clicking "Apply"
+        const [tempVisibleColumns, setTempVisibleColumns] = useState<Record<keyof Facturacion, boolean>>(visibleColumns);
+        const [dropdownOpen, setDropdownOpen] = useState(false);
+
+        // Group columns by category
+        const columnGroups = {
+            "Información Básica": columns.filter(col =>
+                ['ISBN', 'Titulo', 'Autor', 'Editorial'].includes(col.key)),
+            "Precios": columns.filter(col =>
+                ['PVP', 'PvpEfectivo'].includes(col.key)),
+            "Unidades": columns.filter(col =>
+                ['UnidadesFacturadas', 'UnidadesDevueltas', 'UnidadesNetas'].includes(col.key)),
+            "Importes": columns.filter(col =>
+                ['ImporteFacturado', 'ImporteDevuelto', 'ImporteNeto'].includes(col.key))
+        };
+
+        // Reset temp state when dropdown opens
+        useEffect(() => {
+            if (dropdownOpen) {
+                setTempVisibleColumns({ ...visibleColumns });
+            }
+        }, [dropdownOpen, visibleColumns]);
+
+        // Count visible columns
+        const visibleColumnCount = Object.values(tempVisibleColumns).filter(Boolean).length;
+
+        return (
+            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto flex items-center gap-2"
+                        title="Gestionar columnas visibles"
+                    >
+                        <TableProperties className="h-4 w-4" />
+                        <Badge variant="secondary" className="text-xs ml-1">
+                            {visibleColumnCount}
+                        </Badge>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[500px]">
+                    <div className="px-3 py-1.5 flex justify-between items-center">
+                        <div className="text-sm font-medium flex items-center gap-2">
+                            <TableProperties className="h-4 w-4" />
+                            <span>Columnas visibles</span>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setTempVisibleColumns(Object.fromEntries(columns.map(column => [column.key, true])) as Record<keyof Facturacion, boolean>);
+                            }}
+                            className="h-6 text-xs px-2"
+                        >
+                            Resetear
+                        </Button>
+                    </div>
+                    <DropdownMenuSeparator />
+
+                    <div className="max-h-[400px] overflow-y-auto">
+                        <div className="p-3">
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className="flex items-center justify-between mb-1 pb-2 border-b">
+                                    <label className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-1.5 rounded-md transition-colors">
+                                        <Checkbox
+                                            checked={columns.every(col => tempVisibleColumns[col.key])}
+                                            onCheckedChange={(checked) => {
+                                                setTempVisibleColumns(prev => {
+                                                    const newState = { ...prev };
+                                                    columns.forEach(col => {
+                                                        newState[col.key] = !!checked;
+                                                    });
+
+                                                    // Ensure at least one column remains visible
+                                                    if (!Object.values(newState).some(Boolean)) {
+                                                        newState[columns[0].key] = true;
+                                                    }
+
+                                                    return newState;
+                                                });
+                                            }}
+                                        />
+                                        <span className="text-sm font-medium">Seleccionar todas las columnas</span>
+                                    </label>
+                                    <Badge variant="secondary" className="text-xs">
+                                        {visibleColumnCount}/{columns.length}
+                                    </Badge>
+                                </div>
+                                {Object.entries(columnGroups).map(([groupName, groupColumns]) => (
+                                    <div key={groupName} className="flex flex-col gap-1.5">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <h3 className="text-xs font-medium">{groupName}</h3>
+                                            <Badge variant="outline" className="text-xs px-1.5 py-0">
+                                                {groupColumns.filter(col => tempVisibleColumns[col.key]).length} columnas
+                                            </Badge>
+                                        </div>
+                                        <div className="flex flex-col gap-1 p-2 border rounded-md">
+                                            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+                                                <label
+                                                    className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-1 rounded-md transition-colors border-b pb-1 mb-1 col-span-2"
+                                                >
+                                                    <Checkbox
+                                                        className="h-3.5 w-3.5"
+                                                        checked={groupColumns.every(col => tempVisibleColumns[col.key])}
+                                                        onCheckedChange={(checked) => {
+                                                            setTempVisibleColumns(prev => {
+                                                                const newState = { ...prev };
+                                                                groupColumns.forEach(col => {
+                                                                    newState[col.key] = !!checked;
+                                                                });
+
+                                                                // Ensure at least one column remains visible
+                                                                if (!Object.values(newState).some(Boolean)) {
+                                                                    newState[columns[0].key] = true;
+                                                                }
+
+                                                                return newState;
+                                                            });
+                                                        }}
+                                                    />
+                                                    <span className="text-xs font-medium">
+                                                        Seleccionar todas
+                                                    </span>
+                                                </label>
+                                                {groupColumns.map((column) => (
+                                                    <label
+                                                        key={column.key as string}
+                                                        className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-1 rounded-md transition-colors"
+                                                    >
+                                                        <Checkbox
+                                                            className="h-3.5 w-3.5"
+                                                            id={`column-${column.key}`}
+                                                            checked={tempVisibleColumns[column.key]}
+                                                            disabled={tempVisibleColumns[column.key] && Object.values(tempVisibleColumns).filter(Boolean).length === 1}
+                                                            onCheckedChange={(checked) => {
+                                                                // Prevent unchecking the last visible column
+                                                                if (checked === false && Object.values(tempVisibleColumns).filter(Boolean).length === 1 && tempVisibleColumns[column.key]) {
+                                                                    return;
+                                                                }
+
+                                                                setTempVisibleColumns((prev) => ({
+                                                                    ...prev,
+                                                                    [column.key]: !!checked
+                                                                }));
+                                                            }}
+                                                        />
+                                                        <span className="text-xs truncate">
+                                                            {column.header.replace('\n', ' ')}
+                                                        </span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-2 border-t flex justify-end gap-2 sticky bottom-0 bg-background">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDropdownOpen(false)}
+                            className="h-7 text-xs px-2"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => {
+                                setVisibleColumns(tempVisibleColumns);
+                                setDropdownOpen(false);
+                            }}
+                            className="h-7 text-xs px-2"
+                        >
+                            Aplicar
+                        </Button>
+                    </div>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+    };
 
     // Fetch data when filters change
     useEffect(() => {
@@ -225,20 +474,25 @@ export function FacturacionDataTable({
     }
 
     return (
-        <Card className="overflow-hidden rounded-xl border shadow-sm">
+        <Card className="overflow-hidden rounded-xl border shadow-sm gap-0 py-0">
+            <div className="p-2 flex justify-between items-center border-b">
+                <span className="text-sm font-medium">Resultados: {sortedData.length}</span>
+                <ColumnVisibilityDropdown />
+            </div>
             <div className="overflow-x-auto">
-                <Table>
+                <Table className="w-full table-fixed">
                     <TableHeader>
                         <TableRow>
-                            {columns.map((column) => (
+                            {displayColumns.map((column) => (
                                 <TableHead
                                     key={column.key}
-                                    className={`${column.align === 'right' ? 'text-right' : ''} ${column.width || ''}`}
+                                    className={`${column.align === 'right' ? 'text-right' : 'text-center'} ${column.width || ''} p-2`}
                                 >
                                     <button
                                         onClick={() => column.sortable && handleSort(column.key)}
-                                        className={`${column.sortable ? 'cursor-pointer hover:text-foreground' : ''} font-medium text-muted-foreground w-full text-${column.align || 'left'}`}
+                                        className={`${column.sortable ? 'cursor-pointer hover:text-foreground' : ''} font-medium text-muted-foreground w-full ${column.align === 'right' ? 'text-right' : 'text-center'} text-xs md:text-sm whitespace-pre-line leading-tight pt-0`}
                                         disabled={!column.sortable}
+                                        title={column.header.replace('\n', ' ')}
                                     >
                                         {column.header}
                                         {column.sortable && getSortIcon(column.key)}
@@ -250,19 +504,19 @@ export function FacturacionDataTable({
                     <TableBody>
                         {paginatedData.map((item, i) => (
                             <TableRow key={i}>
-                                {columns.map((column) => (
+                                {displayColumns.map((column) => (
                                     <TableCell
                                         key={`${i}-${column.key}`}
-                                        className={`${column.align === 'right' ? 'text-right' : ''} ${column.key === 'Titulo' ? 'break-words' : ''}`}
+                                        className={`${column.align === 'right' ? 'text-right' : ''} ${column.key === 'Titulo' ? 'break-words' : ''} p-2 text-xs md:text-sm`}
                                     >
                                         {column.key === 'Titulo' ? (
                                             <span title={item[column.key]?.toString() || ''}>
-                                                {truncateText(item[column.key]?.toString(), 60)}
+                                                {truncateText(item[column.key]?.toString(), 35)}
                                             </span>
                                         ) : column.format ? (
                                             column.format(item[column.key])
                                         ) : (
-                                            item[column.key] || '-'
+                                            truncateText(item[column.key]?.toString() || '-', 20)
                                         )}
                                     </TableCell>
                                 ))}
@@ -273,16 +527,16 @@ export function FacturacionDataTable({
             </div>
 
             {/* Pagination controls */}
-            <div className="flex items-center justify-between px-4 py-3 border-t">
-                <div className="flex items-center">
-                    <span className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between px-2 py-2 border-t">
+                <div className="flex items-center text-xs mb-2 sm:mb-0">
+                    <span className="text-muted-foreground">
                         Mostrando {paginatedData.length > 0 ? (page - 1) * pageSize + 1 : 0} a {Math.min(page * pageSize, sortedData.length)} de {sortedData.length} resultados
                     </span>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                    <div className="flex items-center mr-4">
-                        <span className="text-sm mr-2">Filas por página:</span>
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                    <div className="flex items-center mr-2 sm:mr-4">
+                        <span className="text-xs mr-1 sm:mr-2">Filas:</span>
                         <Select
                             value={pageSize.toString()}
                             onValueChange={(value) => {
@@ -290,7 +544,7 @@ export function FacturacionDataTable({
                                 setPage(1); // Reset to first page
                             }}
                         >
-                            <SelectTrigger className="h-8 w-16">
+                            <SelectTrigger className="h-7 w-14 text-xs">
                                 <SelectValue placeholder={pageSize} />
                             </SelectTrigger>
                             <SelectContent>
@@ -306,23 +560,25 @@ export function FacturacionDataTable({
                     <Button
                         variant="outline"
                         size="sm"
+                        className="h-7 w-7 p-0"
                         onClick={() => handlePageChange(page - 1)}
                         disabled={page === 1}
                     >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-3 w-3" />
                     </Button>
 
-                    <span className="text-sm">
-                        Página {page} de {totalPages || 1}
+                    <span className="text-xs">
+                        {page}/{totalPages || 1}
                     </span>
 
                     <Button
                         variant="outline"
                         size="sm"
+                        className="h-7 w-7 p-0"
                         onClick={() => handlePageChange(page + 1)}
                         disabled={page === totalPages || totalPages === 0}
                     >
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-3 w-3" />
                     </Button>
                 </div>
             </div>
