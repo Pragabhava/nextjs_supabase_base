@@ -92,6 +92,7 @@ export function FacturacionDataTable({
     const [data, setData] = useState<Facturacion[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [isTimeout, setIsTimeout] = useState(false)
 
     // Pagination state
     const [page, setPage] = useState(1)
@@ -373,36 +374,53 @@ export function FacturacionDataTable({
     };
 
     // Fetch data when filters change
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true)
-            try {
-                // Format dates for the API
-                const fechaInicio = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
-                const fechaFin = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
+    const fetchData = async () => {
+        setLoading(true)
+        setError(null)
+        setIsTimeout(false)
 
-                // Get all selected editorial names from the map using composite keys
-                const editorialesArray = selectedEditoriales.length > 0
-                    ? selectedEditoriales.map(compositeKey => editorialMap[compositeKey]).filter(Boolean)
-                    : [];
+        try {
+            // Set up timeout detection
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error('La solicitud ha excedido el tiempo de espera')), 30000)
+            })
 
-                const result = await getFacturacionTable(fechaInicio, fechaFin, editorialesArray)
+            // Format dates for the API
+            const fechaInicio = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
+            const fechaFin = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
 
-                if (result.error) {
-                    throw new Error(result.error)
-                }
+            // Get all selected editorial names from the map using composite keys
+            const editorialesArray = selectedEditoriales.length > 0
+                ? selectedEditoriales.map(compositeKey => editorialMap[compositeKey]).filter(Boolean)
+                : [];
 
-                setData(result.data)
-                // Reset to first page when data changes
-                setPage(1)
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Error al cargar datos')
-                console.error('Error loading data:', err)
-            } finally {
-                setLoading(false)
+            // Race between actual fetch and timeout
+            const result = await Promise.race([
+                getFacturacionTable(fechaInicio, fechaFin, editorialesArray),
+                timeoutPromise
+            ])
+
+            if (result.error) {
+                throw new Error(result.error)
             }
-        }
 
+            setData(result.data)
+            // Reset to first page when data changes
+            setPage(1)
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Error al cargar datos'
+            setError(errorMessage)
+            // Check if it's a timeout error
+            if (err instanceof Error && err.message === 'La solicitud ha excedido el tiempo de espera') {
+                setIsTimeout(true)
+            }
+            console.error('Error loading data:', err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
         fetchData()
     }, [selectedEditoriales, editorialMap, dateRange])
 
@@ -505,7 +523,26 @@ export function FacturacionDataTable({
     }
 
     if (error) {
-        return <div className="text-red-500 p-4">Error: {error}</div>
+        return (
+            <div className="flex flex-col items-center justify-center p-8 gap-4">
+                <div className="text-red-500 text-center">Error: {error}</div>
+                {isTimeout && (
+                    <Button
+                        variant="outline"
+                        onClick={fetchData}
+                        className="flex items-center gap-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                            <path d="M21 3v5h-5" />
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                            <path d="M3 21v-5h5" />
+                        </svg>
+                        Intentar nuevamente
+                    </Button>
+                )}
+            </div>
+        )
     }
 
     // Handle the case when there's no data
