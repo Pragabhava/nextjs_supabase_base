@@ -582,9 +582,9 @@ export function FacturacionDataTable({
                     <ColumnVisibilityDropdown />
                 </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                 <Table className="w-full table-fixed">
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 bg-background z-10">
                         <TableRow>
                             {displayColumns.map((column) => (
                                 <TableHead
@@ -648,7 +648,7 @@ export function FacturacionDataTable({
                                 setPage(1); // Reset to first page
                             }}
                         >
-                            <SelectTrigger className="h-7 w-14 text-xs">
+                            <SelectTrigger className="h-7 w-18 text-xs">
                                 <SelectValue placeholder={pageSize} />
                             </SelectTrigger>
                             <SelectContent>
