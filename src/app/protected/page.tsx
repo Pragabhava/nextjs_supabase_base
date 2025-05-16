@@ -8,10 +8,10 @@ export default function ProtectedPage() {
       <div className="px-4 lg:px-6">
         <FacturacionFilters />
       </div>
-      <SectionCards />
-      <div className="px-4 lg:px-6">
+      {/* <SectionCards /> */}
+      {/* <div className="px-4 lg:px-6">
         <ChartAreaInteractive />
-      </div>
+      </div> */}
     </div>
   )
 }

@@ -96,7 +96,7 @@ export function FacturacionDataTable({
 
     // Pagination state
     const [page, setPage] = useState(1)
-    const [pageSize, setPageSize] = useState(50)
+    const [pageSize, setPageSize] = useState(15)
 
     // Sorting state
     const [sortColumn, setSortColumn] = useState<keyof Facturacion>('UnidadesFacturadas')
