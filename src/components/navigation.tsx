@@ -82,7 +82,7 @@ export function Navigation({ user }: { user: User }) {
     }
 
     return (
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 sticky top-0 z-50 bg-white dark:bg-black">
             {/* Mobile Navigation Bar */}
             <div className="flex flex-row md:hidden h-14 w-full">
                 <nav className="group px-4 z-10 w-full h-14 border-b bg-dash-sidebar border-default shadow-xl transition-width duration-200 hide-scrollbar flex flex-row items-center justify-between overflow-x-auto">
@@ -178,10 +178,10 @@ export function Navigation({ user }: { user: User }) {
                                     {user?.email && (
                                         <span className="w-full text-left font-medium text-foreground truncate">{user.email}</span>
                                     )}
-                                    <span className="w-full text-left text-foreground-muted truncate">{user?.email || "user@example.com"}</span>
+                                    {/* <span className="w-full text-left text-foreground-muted truncate">{user?.email || "user@example.com"}</span> */}
                                 </div>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
+                                {/* <DropdownMenuGroup>
                                     <DropdownMenuItem>
                                         <Settings className="h-[14px] w-[14px] text-foreground-lighter" />
                                         <span>Account preferences</span>
@@ -195,7 +195,7 @@ export function Navigation({ user }: { user: User }) {
                                         <span>Command menu</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
-                                <DropdownMenuSeparator />
+                                <DropdownMenuSeparator /> */}
                                 <DropdownMenuGroup>
                                     <DropdownMenuLabel className="px-2 py-1.5 text-xs text-foreground-lighter">
                                         Theme
