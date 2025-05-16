@@ -21,7 +21,8 @@ import {
     ArrowDown,
     Columns,
     LayoutList,
-    TableProperties
+    TableProperties,
+    Search
 } from "lucide-react"
 import {
     Select,
@@ -40,6 +41,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
 
 interface FacturacionDataTableProps {
     selectedEditoriales: string[]
@@ -98,6 +100,9 @@ export function FacturacionDataTable({
     // Sorting state
     const [sortColumn, setSortColumn] = useState<keyof Facturacion>('UnidadesFacturadas')
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+
+    // Search state
+    const [searchTerm, setSearchTerm] = useState<string>("")
 
     // Define columns
     const columns: Column[] = [
@@ -449,15 +454,50 @@ export function FacturacionDataTable({
             : <ArrowDown className="inline ml-1 h-4 w-4" />;
     };
 
-    // Pagination
-    const totalPages = Math.ceil(sortedData.length / pageSize);
-    const paginatedData = sortedData.slice((page - 1) * pageSize, page * pageSize);
+    // Apply search filter to sorted data
+    const filteredData = searchTerm.trim() === ""
+        ? sortedData
+        : sortedData.filter(item => {
+            const searchLower = searchTerm.toLowerCase();
+
+            // Search through all visible columns that are strings or can be converted to strings
+            return Object.entries(item).some(([key, value]) => {
+                // Only search in visible columns
+                if (!visibleColumns[key as keyof Facturacion]) {
+                    return false;
+                }
+
+                // Handle different value types
+                if (value === null || value === undefined) {
+                    return false;
+                }
+
+                // Convert value to string based on column format if available
+                const column = columns.find(col => col.key === key);
+                const stringValue = column?.format
+                    ? column.format(value).toLowerCase()
+                    : String(value).toLowerCase();
+
+                return stringValue.includes(searchLower);
+            });
+        });
+
+    // Pagination (update to use filtered data instead of sorted data)
+    const totalPages = Math.ceil(filteredData.length / pageSize);
+    const paginatedData = filteredData.slice((page - 1) * pageSize, page * pageSize);
 
     // Handle page change
     const handlePageChange = (newPage: number) => {
         if (newPage > 0 && newPage <= totalPages) {
             setPage(newPage);
         }
+    };
+
+    // Handle clear search
+    const handleClearSearch = () => {
+        setSearchTerm("");
+        // Reset to first page when clearing search
+        setPage(1);
     };
 
     if (loading) {
@@ -476,8 +516,34 @@ export function FacturacionDataTable({
     return (
         <Card className="overflow-hidden rounded-xl border shadow-sm gap-0 py-0">
             <div className="p-2 flex justify-between items-center border-b">
-                <span className="text-sm font-medium">Resultados: {sortedData.length}</span>
-                <ColumnVisibilityDropdown />
+                <span className="text-sm font-medium">Resultados: {filteredData.length}</span>
+                <div className="flex items-center gap-2">
+                    <div className="relative flex-grow max-w-md">
+                        <Input
+                            placeholder="Buscar en todos los campos..."
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setPage(1); // Reset to first page when searching
+                            }}
+                            className="h-8 pr-8 w-full"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                            {searchTerm ? (
+                                <button
+                                    onClick={handleClearSearch}
+                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <span className="sr-only">Limpiar búsqueda</span>
+                                    ×
+                                </button>
+                            ) : (
+                                <Search className="h-4 w-4 text-muted-foreground" />
+                            )}
+                        </div>
+                    </div>
+                    <ColumnVisibilityDropdown />
+                </div>
             </div>
             <div className="overflow-x-auto">
                 <Table className="w-full table-fixed">
@@ -530,7 +596,8 @@ export function FacturacionDataTable({
             <div className="flex flex-col sm:flex-row items-center justify-between px-2 py-2 border-t">
                 <div className="flex items-center text-xs mb-2 sm:mb-0">
                     <span className="text-muted-foreground">
-                        Mostrando {paginatedData.length > 0 ? (page - 1) * pageSize + 1 : 0} a {Math.min(page * pageSize, sortedData.length)} de {sortedData.length} resultados
+                        Mostrando {paginatedData.length > 0 ? (page - 1) * pageSize + 1 : 0} a {Math.min(page * pageSize, filteredData.length)} de {filteredData.length} resultados
+                        {searchTerm && ` (filtrado de ${sortedData.length} resultados totales)`}
                     </span>
                 </div>
 
