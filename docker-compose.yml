@@ -1,23 +1,75 @@
 services:
-  app:
+  # Next.js Frontend
+  frontend:
     build:
       context: .
+      dockerfile: Dockerfile.nextjs
       args:
-        # - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-        # - DATABASE_URL=${DATABASE_URL}
         - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        - NEXT_SPD_DB_SERVER=${NEXT_SPD_DB_SERVER}
+        - NEXT_SPD_DB_DATABASE=${NEXT_SPD_DB_DATABASE}
+        - NEXT_SPD_DB_USER=${NEXT_SPD_DB_USER}
+        - NEXT_SPD_DB_PASSWORD=${NEXT_SPD_DB_PASSWORD}
+        - NEXT_SPD_DB_PORT=${NEXT_SPD_DB_PORT}
+        - NEXT_PUBLIC_API_URL=http://backend:8002
+        - INTERNAL_API_URL=http://backend:8002
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      # - DATABASE_URL=${DATABASE_URL}
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      # - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_SPD_DB_SERVER=${NEXT_SPD_DB_SERVER}
+      - NEXT_SPD_DB_DATABASE=${NEXT_SPD_DB_DATABASE}
+      - NEXT_SPD_DB_USER=${NEXT_SPD_DB_USER}
+      - NEXT_SPD_DB_PASSWORD=${NEXT_SPD_DB_PASSWORD}
+      - NEXT_SPD_DB_PORT=${NEXT_SPD_DB_PORT}
+      - NEXT_PUBLIC_API_URL=http://backend:8002
+      - INTERNAL_API_URL=http://backend:8002
+    depends_on:
+      backend:
+        condition: service_healthy
     dns:
       - 8.8.8.8
       - 8.8.4.4
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+    networks:
+      - app-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - PRIVATE_DB_SERVER=${NEXT_SPD_DB_SERVER}
+      - PRIVATE_DB_DATABASE=${NEXT_SPD_DB_DATABASE}
+      - PRIVATE_DB_USER=${NEXT_SPD_DB_USER}
+      - PRIVATE_DB_PASSWORD=${NEXT_SPD_DB_PASSWORD}
+      - PRIVATE_DB_PORT=${NEXT_SPD_DB_PORT}
+      - ALLOWED_ORIGINS=["http://localhost:3000","http://frontend:3000"]
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8002/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  app-network:
+    driver: bridge
